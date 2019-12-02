@@ -18,26 +18,26 @@ import org.jetbrains.dukat.js.type.constraint.reference.call.CallArgumentConstra
 import org.jetbrains.dukat.js.type.constraint.reference.call.CallResultConstraint
 import org.jetbrains.dukat.js.type.constraint.properties.ObjectConstraint
 import org.jetbrains.dukat.js.type.constraint.properties.PropertyOwnerConstraint
+import org.jetbrains.dukat.js.type.inbuilt.arrayClass
+import org.jetbrains.dukat.js.type.inbuilt.regExpClass
 import org.jetbrains.dukat.js.type.property_owner.Scope
 import org.jetbrains.dukat.panic.raiseConcern
 import org.jetbrains.dukat.tsmodel.ClassDeclaration
-import org.jetbrains.dukat.tsmodel.ConstructorDeclaration
 import org.jetbrains.dukat.tsmodel.ExpressionDeclaration
 import org.jetbrains.dukat.tsmodel.FunctionDeclaration
-import org.jetbrains.dukat.tsmodel.MemberDeclaration
-import org.jetbrains.dukat.tsmodel.ModifierDeclaration
-import org.jetbrains.dukat.tsmodel.PropertyDeclaration
 import org.jetbrains.dukat.tsmodel.expression.BinaryExpressionDeclaration
 import org.jetbrains.dukat.tsmodel.expression.CallExpressionDeclaration
 import org.jetbrains.dukat.tsmodel.expression.NewExpressionDeclaration
 import org.jetbrains.dukat.tsmodel.expression.PropertyAccessExpressionDeclaration
 import org.jetbrains.dukat.tsmodel.expression.TypeOfExpressionDeclaration
 import org.jetbrains.dukat.tsmodel.expression.UnaryExpressionDeclaration
+import org.jetbrains.dukat.tsmodel.expression.literal.ArrayLiteralExpressionDeclaration
 import org.jetbrains.dukat.tsmodel.expression.literal.BigIntLiteralExpressionDeclaration
 import org.jetbrains.dukat.tsmodel.expression.literal.BooleanLiteralExpressionDeclaration
 import org.jetbrains.dukat.tsmodel.expression.literal.LiteralExpressionDeclaration
 import org.jetbrains.dukat.tsmodel.expression.literal.NumericLiteralExpressionDeclaration
 import org.jetbrains.dukat.tsmodel.expression.literal.ObjectLiteralExpressionDeclaration
+import org.jetbrains.dukat.tsmodel.expression.literal.RegExLiteralExpressionDeclaration
 import org.jetbrains.dukat.tsmodel.expression.literal.StringLiteralExpressionDeclaration
 import org.jetbrains.dukat.tsmodel.expression.name.IdentifierExpressionDeclaration
 
@@ -238,6 +238,21 @@ fun ObjectLiteralExpressionDeclaration.calculateConstraints(owner: PropertyOwner
     return obj
 }
 
+fun ArrayLiteralExpressionDeclaration.calculateConstraints(owner: PropertyOwner, path: PathWalker) : ObjectConstraint {
+    val array = ObjectConstraint(owner, arrayClass)
+
+    elements.forEachIndexed { i, element ->
+        //TODO work with index directly
+        array[i.toString()] = element.calculateConstraints(owner, path)
+    }
+
+    return array
+}
+
+fun RegExLiteralExpressionDeclaration.calculateConstraints(owner: PropertyOwner) : ObjectConstraint {
+    return ObjectConstraint(owner, regExpClass)
+}
+
 fun LiteralExpressionDeclaration.calculateConstraints(owner: PropertyOwner, path: PathWalker) : Constraint {
     return when (this) {
         is StringLiteralExpressionDeclaration -> StringTypeConstraint
@@ -245,6 +260,8 @@ fun LiteralExpressionDeclaration.calculateConstraints(owner: PropertyOwner, path
         is BigIntLiteralExpressionDeclaration -> BigIntTypeConstraint
         is BooleanLiteralExpressionDeclaration -> BooleanTypeConstraint
         is ObjectLiteralExpressionDeclaration -> this.calculateConstraints(owner, path)
+        is ArrayLiteralExpressionDeclaration -> this.calculateConstraints(owner, path)
+        is RegExLiteralExpressionDeclaration -> this.calculateConstraints(owner)
         else -> raiseConcern("Unexpected literal expression type <${this::class}>") { CompositeConstraint(NoTypeConstraint) }
     }
 }

@@ -11,6 +11,8 @@ open class ReferenceConstraint(
         private val identifier: IdentifierEntity,
         owner: PropertyOwner
 ) : PropertyOwnerReferenceConstraint(owner) {
+    constructor(identifier: String, owner: PropertyOwner): this(IdentifierEntity(identifier), owner)
+
     private var resolutionState = ResolutionState.UNRESOLVED
     private var resolvedConstraint: Constraint? = null
 
