@@ -12,6 +12,8 @@ import org.jetbrains.dukat.js.type.constraint.immutable.resolved.NoTypeConstrain
 import org.jetbrains.dukat.js.type.constraint.immutable.resolved.NumberTypeConstraint
 import org.jetbrains.dukat.js.type.constraint.immutable.resolved.StringTypeConstraint
 import org.jetbrains.dukat.js.type.constraint.immutable.resolved.VoidTypeConstraint
+import org.jetbrains.dukat.js.type.constraint.immutable.resolved.values.FalsyConstraint
+import org.jetbrains.dukat.js.type.constraint.immutable.resolved.values.TruthyConstraint
 import org.jetbrains.dukat.js.type.constraint.properties.ClassConstraint
 import org.jetbrains.dukat.js.type.constraint.properties.FunctionConstraint
 import org.jetbrains.dukat.js.type.constraint.reference.call.CallArgumentConstraint
@@ -211,11 +213,17 @@ fun NewExpressionDeclaration.calculateConstraints(owner: PropertyOwner, path: Pa
 }
 
 fun ConditionalExpressionDeclaration.calculateConstraints(owner: PropertyOwner, path: PathWalker) : Constraint {
-    condition.calculateConstraints(owner, path)
+    val conditionConstraints = condition.calculateConstraints(owner, path)
 
     return when (path.getNextDirection()) {
-        PathWalker.Direction.First -> whenTrue.calculateConstraints(owner, path)
-        PathWalker.Direction.Second -> whenFalse.calculateConstraints(owner, path)
+        PathWalker.Direction.First -> {
+            conditionConstraints += TruthyConstraint
+            whenTrue.calculateConstraints(owner, path)
+        }
+        PathWalker.Direction.Second -> {
+            conditionConstraints += FalsyConstraint
+            whenFalse.calculateConstraints(owner, path)
+        }
     }
 }
 

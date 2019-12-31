@@ -12,11 +12,13 @@ import org.jetbrains.dukat.js.type.constraint.immutable.resolved.NumberTypeConst
 import org.jetbrains.dukat.js.type.constraint.immutable.resolved.StringTypeConstraint
 import org.jetbrains.dukat.js.type.constraint.immutable.resolved.ThrowConstraint
 import org.jetbrains.dukat.js.type.constraint.immutable.resolved.VoidTypeConstraint
+import org.jetbrains.dukat.js.type.constraint.immutable.resolved.values.TruthyConstraint
 import org.jetbrains.dukat.js.type.constraint.properties.ClassConstraint
 import org.jetbrains.dukat.js.type.constraint.properties.FunctionConstraint
 import org.jetbrains.dukat.js.type.constraint.properties.ObjectConstraint
 import org.jetbrains.dukat.js.type.property_owner.PropertyOwner
 import org.jetbrains.dukat.js.type.type.anyNullableType
+import org.jetbrains.dukat.js.type.type.anyType
 import org.jetbrains.dukat.js.type.type.booleanType
 import org.jetbrains.dukat.js.type.type.nothingType
 import org.jetbrains.dukat.js.type.type.numberType
@@ -212,6 +214,7 @@ private fun Constraint.toType() : ParameterValueDeclaration {
         is BigIntTypeConstraint -> numberType
         is BooleanTypeConstraint -> booleanType
         is StringTypeConstraint -> stringType
+        is TruthyConstraint -> anyType
         is VoidTypeConstraint -> voidType
         is ThrowConstraint -> nothingType
         is UnionTypeConstraint -> this.toType()

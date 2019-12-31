@@ -4,6 +4,8 @@ import org.jetbrains.dukat.js.type.constraint.Constraint
 import org.jetbrains.dukat.js.type.constraint.immutable.resolved.NoTypeConstraint
 import org.jetbrains.dukat.js.type.constraint.immutable.resolved.ThrowConstraint
 import org.jetbrains.dukat.js.type.constraint.immutable.resolved.VoidTypeConstraint
+import org.jetbrains.dukat.js.type.constraint.immutable.resolved.values.FalsyConstraint
+import org.jetbrains.dukat.js.type.constraint.immutable.resolved.values.TruthyConstraint
 import org.jetbrains.dukat.js.type.property_owner.PropertyOwner
 import org.jetbrains.dukat.panic.raiseConcern
 import org.jetbrains.dukat.tsmodel.BlockDeclaration
@@ -28,20 +30,32 @@ fun VariableDeclaration.addTo(owner: PropertyOwner, path: PathWalker) {
 }
 
 fun IfStatementDeclaration.calculateConstraints(owner: PropertyOwner, path: PathWalker) : Constraint? {
-    condition.calculateConstraints(owner, path)
+    val conditionConstraints = condition.calculateConstraints(owner, path)
 
     return when (path.getNextDirection()) {
-        PathWalker.Direction.First -> thenStatement.calculateConstraints(owner, path)
-        PathWalker.Direction.Second -> elseStatement?.calculateConstraints(owner, path)
+        PathWalker.Direction.First -> {
+            conditionConstraints += TruthyConstraint
+            thenStatement.calculateConstraints(owner, path)
+        }
+        PathWalker.Direction.Second -> {
+            conditionConstraints += FalsyConstraint
+            elseStatement?.calculateConstraints(owner, path)
+        }
     }
 }
 
 fun WhileStatementDeclaration.calculateConstraints(owner: PropertyOwner, path: PathWalker) : Constraint? {
-    condition.calculateConstraints(owner, path)
+    val conditionalConstraint = condition.calculateConstraints(owner, path)
 
     return when (path.getNextDirection()) {
-        PathWalker.Direction.First -> statement.calculateConstraints(owner, path)
-        PathWalker.Direction.Second -> null
+        PathWalker.Direction.First -> {
+            conditionalConstraint += TruthyConstraint
+            statement.calculateConstraints(owner, path)
+        }
+        PathWalker.Direction.Second -> {
+            conditionalConstraint += FalsyConstraint
+            null
+        }
     }
 }
 

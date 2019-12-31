@@ -7,6 +7,7 @@ import org.jetbrains.dukat.js.type.constraint.immutable.resolved.BooleanTypeCons
 import org.jetbrains.dukat.js.type.constraint.immutable.resolved.NoTypeConstraint
 import org.jetbrains.dukat.js.type.constraint.immutable.resolved.NumberTypeConstraint
 import org.jetbrains.dukat.js.type.constraint.immutable.resolved.StringTypeConstraint
+import org.jetbrains.dukat.js.type.constraint.immutable.resolved.values.TruthyConstraint
 import org.jetbrains.dukat.js.type.constraint.properties.FunctionConstraint
 import org.jetbrains.dukat.js.type.constraint.properties.ObjectConstraint
 import org.jetbrains.dukat.js.type.constraint.properties.PropertyOwnerConstraint
@@ -104,6 +105,7 @@ class CompositeConstraint(
                 resolvedConstraints.contains(BigIntTypeConstraint) -> BigIntTypeConstraint
                 resolvedConstraints.contains(BooleanTypeConstraint) -> BooleanTypeConstraint
                 resolvedConstraints.contains(StringTypeConstraint) -> StringTypeConstraint
+                resolvedConstraints.contains(TruthyConstraint) -> TruthyConstraint
                 else -> NoTypeConstraint
             }
         }

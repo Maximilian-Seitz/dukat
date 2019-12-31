@@ -21,6 +21,12 @@ val anyNullableType = TypeDeclaration(
         nullable = true
 )
 
+val anyType = TypeDeclaration(
+        value = IdentifierEntity("any"),
+        params = emptyList(),
+        nullable = false
+)
+
 val numberType = TypeDeclaration(
         value = IdentifierEntity("number"),
         params = emptyList(),
