@@ -15,8 +15,8 @@ import org.w3c.performance.*
 import org.w3c.workers.*
 import org.w3c.xhr.*
 
+external fun withDefault(a: Any?, b: Any?): Nothing
+
 external fun withDefault(a: Any, b: Any): Any
 
 external fun withDefault(a: Any?, b: Any): Any
-
-external fun withDefault(a: Any?, b: Any?): Nothing

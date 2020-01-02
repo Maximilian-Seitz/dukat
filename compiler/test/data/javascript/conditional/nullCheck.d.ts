@@ -1,12 +1,12 @@
 
 module.exports.withDefault = (a, b) => {
-    if (b) {
-        if (a) {
-            return a
-        } else {
-            return b
-        }
+    if (!b) {
+        throw Error()
     }
 
-    throw Error()
+    if (a) {
+        return a
+    } else {
+        return b
+    }
 }

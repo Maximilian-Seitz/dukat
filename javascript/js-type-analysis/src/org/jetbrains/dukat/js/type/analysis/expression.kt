@@ -4,6 +4,7 @@ import org.jetbrains.dukat.astCommon.IdentifierEntity
 import org.jetbrains.dukat.js.type.constraint.Constraint
 import org.jetbrains.dukat.js.type.constraint.reference.ReferenceConstraint
 import org.jetbrains.dukat.js.type.constraint.composite.CompositeConstraint
+import org.jetbrains.dukat.js.type.constraint.conditional.NegatedConstraint
 import org.jetbrains.dukat.js.type.constraint.immutable.CallableConstraint
 import org.jetbrains.dukat.js.type.property_owner.PropertyOwner
 import org.jetbrains.dukat.js.type.constraint.immutable.resolved.BigIntTypeConstraint
@@ -95,82 +96,7 @@ fun ClassDeclaration.addTo(owner: PropertyOwner, path: PathWalker) : ClassConstr
 }
 
 
-fun BinaryExpressionDeclaration.calculateConstraints(owner: PropertyOwner, path: PathWalker) : Constraint {
-    return when (operator) {
-        // Assignments
-        "=" -> {
-            val rightConstraints = right.calculateConstraints(owner, path)
-            owner[left, path] = rightConstraints
-            rightConstraints
-        }
-        "-=", "*=", "/=", "%=", "**=", "&=", "^=", "|=", "<<=", ">>=", ">>>=" -> {
-            right.calculateConstraints(owner, path)
-            owner[left, path] = NumberTypeConstraint
-            NumberTypeConstraint
-        }
 
-        // Non-assignments
-        "&&", "||" -> {
-            when (path.getNextDirection()) {
-                PathWalker.Direction.First -> {
-                    left.calculateConstraints(owner, path)
-                    //right isn't being evaluated
-                }
-                PathWalker.Direction.Second -> {
-                    left.calculateConstraints(owner, path)
-                    right.calculateConstraints(owner, path)
-                }
-            }
-        }
-        "-", "*", "/", "**", "%", "++", "--" -> {
-            left.calculateConstraints(owner, path) += NumberTypeConstraint
-            right.calculateConstraints(owner, path) += NumberTypeConstraint
-            NumberTypeConstraint
-        }
-        "&", "|", "^", "<<", ">>", ">>>" -> {
-            left.calculateConstraints(owner, path)
-            right.calculateConstraints(owner, path)
-            NumberTypeConstraint
-        }
-        "==", "===", "!=", "!==", "in", "instanceof" -> {
-            left.calculateConstraints(owner, path)
-            right.calculateConstraints(owner, path)
-            BooleanTypeConstraint
-        }
-        ">", "<", ">=", "<=" -> {
-            left.calculateConstraints(owner, path) += NumberTypeConstraint
-            right.calculateConstraints(owner, path) += NumberTypeConstraint
-            BooleanTypeConstraint
-        }
-        else -> {
-            left.calculateConstraints(owner, path)
-            right.calculateConstraints(owner, path)
-            CompositeConstraint(owner, NoTypeConstraint)
-        }
-    }
-}
-
-fun UnaryExpressionDeclaration.calculateConstraints(owner: PropertyOwner, path: PathWalker) : Constraint {
-    val operandConstraints = operand.calculateConstraints(owner, path)
-
-    return when (operator) {
-        "--", "++", "~" -> {
-            operandConstraints += NumberTypeConstraint
-            owner[operand, path] = NumberTypeConstraint
-            NumberTypeConstraint
-        }
-        "-", "+" -> {
-            operandConstraints += NumberTypeConstraint
-            NumberTypeConstraint
-        }
-        "!" -> {
-            BooleanTypeConstraint
-        }
-        else -> {
-            CompositeConstraint(owner, NoTypeConstraint)
-        }
-    }
-}
 
 fun TypeOfExpressionDeclaration.calculateConstraints(owner: PropertyOwner, path: PathWalker) : Constraint {
     expression.calculateConstraints(owner, path)
