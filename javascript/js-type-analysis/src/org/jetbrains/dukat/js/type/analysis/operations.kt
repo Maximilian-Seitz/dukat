@@ -6,7 +6,7 @@ import org.jetbrains.dukat.js.type.constraint.conditional.NegatedConstraint
 import org.jetbrains.dukat.js.type.constraint.immutable.resolved.BooleanTypeConstraint
 import org.jetbrains.dukat.js.type.constraint.immutable.resolved.NoTypeConstraint
 import org.jetbrains.dukat.js.type.constraint.immutable.resolved.NumberTypeConstraint
-import org.jetbrains.dukat.js.type.property_owner.PropertyOwner
+import org.jetbrains.dukat.js.type.propertyOwner.PropertyOwner
 import org.jetbrains.dukat.tsmodel.ExpressionDeclaration
 import org.jetbrains.dukat.tsmodel.expression.BinaryExpressionDeclaration
 import org.jetbrains.dukat.tsmodel.expression.UnaryExpressionDeclaration
@@ -29,11 +29,11 @@ fun calculateConstraintsFromBinaryOperation(owner: PropertyOwner, path: PathWalk
         // Non-assignments
         "&&", "||" -> {
             when (path.getNextDirection()) {
-                PathWalker.Direction.First -> {
+                PathWalker.Direction.Left -> {
                     left.calculateConstraints(owner, path)
                     //right isn't being evaluated
                 }
-                PathWalker.Direction.Second -> {
+                PathWalker.Direction.Right -> {
                     left.calculateConstraints(owner, path)
                     right.calculateConstraints(owner, path)
                 }

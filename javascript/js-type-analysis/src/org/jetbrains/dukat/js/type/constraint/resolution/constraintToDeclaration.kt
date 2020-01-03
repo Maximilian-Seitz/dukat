@@ -16,7 +16,7 @@ import org.jetbrains.dukat.js.type.constraint.immutable.resolved.values.TruthyCo
 import org.jetbrains.dukat.js.type.constraint.properties.ClassConstraint
 import org.jetbrains.dukat.js.type.constraint.properties.FunctionConstraint
 import org.jetbrains.dukat.js.type.constraint.properties.ObjectConstraint
-import org.jetbrains.dukat.js.type.property_owner.PropertyOwner
+import org.jetbrains.dukat.js.type.propertyOwner.PropertyOwner
 import org.jetbrains.dukat.js.type.type.anyNullableType
 import org.jetbrains.dukat.js.type.type.anyType
 import org.jetbrains.dukat.js.type.type.booleanType
@@ -51,7 +51,7 @@ private fun getVariableDeclaration(name: String, type: ParameterValueDeclaration
         type = type,
         modifiers = modifiers,
         initializer = null,
-        uid = getUID()
+        uid = generateUID()
 )
 
 private fun getPropertyDeclaration(name: String, type: ParameterValueDeclaration, isStatic: Boolean) = PropertyDeclaration(
@@ -79,7 +79,7 @@ private fun FunctionConstraint.toDeclarations(name: String, modifiers: List<Modi
             typeParameters = emptyList(),
             modifiers = modifiers,
             body = null,
-            uid = getUID()
+            uid = generateUID()
     )
 }
 
@@ -153,7 +153,7 @@ private fun ClassConstraint.toDeclaration(name: String, modifiers: List<Modifier
             typeParameters = emptyList(),
             parentEntities = emptyList(),
             modifiers = modifiers,
-            uid = getUID()
+            uid = generateUID()
     )
 }
 
@@ -204,7 +204,7 @@ private fun ObjectConstraint.mapMembers() : List<MemberDeclaration> {
 private fun ObjectConstraint.toType() : ObjectLiteralDeclaration {
     return ObjectLiteralDeclaration(
             members = mapMembers(),
-            uid = getUID()
+            uid = generateUID()
     )
 }
 

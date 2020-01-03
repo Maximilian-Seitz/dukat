@@ -4,9 +4,8 @@ import org.jetbrains.dukat.astCommon.IdentifierEntity
 import org.jetbrains.dukat.js.type.constraint.Constraint
 import org.jetbrains.dukat.js.type.constraint.reference.ReferenceConstraint
 import org.jetbrains.dukat.js.type.constraint.composite.CompositeConstraint
-import org.jetbrains.dukat.js.type.constraint.conditional.NegatedConstraint
 import org.jetbrains.dukat.js.type.constraint.immutable.CallableConstraint
-import org.jetbrains.dukat.js.type.property_owner.PropertyOwner
+import org.jetbrains.dukat.js.type.propertyOwner.PropertyOwner
 import org.jetbrains.dukat.js.type.constraint.immutable.resolved.BigIntTypeConstraint
 import org.jetbrains.dukat.js.type.constraint.immutable.resolved.BooleanTypeConstraint
 import org.jetbrains.dukat.js.type.constraint.immutable.resolved.NoTypeConstraint
@@ -21,7 +20,7 @@ import org.jetbrains.dukat.js.type.constraint.reference.call.CallArgumentConstra
 import org.jetbrains.dukat.js.type.constraint.reference.call.CallResultConstraint
 import org.jetbrains.dukat.js.type.constraint.properties.ObjectConstraint
 import org.jetbrains.dukat.js.type.constraint.properties.PropertyOwnerConstraint
-import org.jetbrains.dukat.js.type.property_owner.Scope
+import org.jetbrains.dukat.js.type.propertyOwner.Scope
 import org.jetbrains.dukat.panic.raiseConcern
 import org.jetbrains.dukat.tsmodel.ClassDeclaration
 import org.jetbrains.dukat.tsmodel.ExpressionDeclaration
@@ -42,7 +41,7 @@ import org.jetbrains.dukat.tsmodel.expression.literal.StringLiteralExpressionDec
 import org.jetbrains.dukat.tsmodel.expression.name.IdentifierExpressionDeclaration
 
 fun FunctionDeclaration.addTo(owner: PropertyOwner) : FunctionConstraint? {
-    return if (this.body != null) {
+    return this.body?.let {
         val pathWalker = PathWalker()
 
         val versions = mutableListOf<FunctionConstraint.Overload>()
@@ -58,7 +57,7 @@ fun FunctionDeclaration.addTo(owner: PropertyOwner) : FunctionConstraint? {
                 parameters[i].name to parameterConstraint
             }
 
-            val returnTypeConstraints = body!!.calculateConstraints(functionScope, pathWalker) ?: VoidTypeConstraint
+            val returnTypeConstraints = it.calculateConstraints(functionScope, pathWalker) ?: VoidTypeConstraint
 
             versions.add(FunctionConstraint.Overload(
                     returnConstraints = returnTypeConstraints,
@@ -73,8 +72,6 @@ fun FunctionDeclaration.addTo(owner: PropertyOwner) : FunctionConstraint? {
         }
 
         functionConstraint
-    } else {
-        null
     }
 }
 
@@ -94,9 +91,6 @@ fun ClassDeclaration.addTo(owner: PropertyOwner, path: PathWalker) : ClassConstr
         raiseConcern("Cannot convert class with name of type <${className::class}>.") { null }
     }
 }
-
-
-
 
 fun TypeOfExpressionDeclaration.calculateConstraints(owner: PropertyOwner, path: PathWalker) : Constraint {
     expression.calculateConstraints(owner, path)
@@ -142,11 +136,11 @@ fun ConditionalExpressionDeclaration.calculateConstraints(owner: PropertyOwner, 
     val conditionConstraints = condition.calculateConstraints(owner, path)
 
     return when (path.getNextDirection()) {
-        PathWalker.Direction.First -> {
+        PathWalker.Direction.Left -> {
             conditionConstraints += TruthyConstraint
             whenTrue.calculateConstraints(owner, path)
         }
-        PathWalker.Direction.Second -> {
+        PathWalker.Direction.Right -> {
             conditionConstraints += FalsyConstraint
             whenFalse.calculateConstraints(owner, path)
         }

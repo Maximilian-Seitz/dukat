@@ -6,14 +6,13 @@ import org.jetbrains.dukat.js.type.constraint.immutable.resolved.ThrowConstraint
 import org.jetbrains.dukat.js.type.constraint.immutable.resolved.VoidTypeConstraint
 import org.jetbrains.dukat.js.type.constraint.immutable.resolved.values.FalsyConstraint
 import org.jetbrains.dukat.js.type.constraint.immutable.resolved.values.TruthyConstraint
-import org.jetbrains.dukat.js.type.property_owner.PropertyOwner
+import org.jetbrains.dukat.js.type.propertyOwner.PropertyOwner
 import org.jetbrains.dukat.panic.raiseConcern
 import org.jetbrains.dukat.tsmodel.BlockDeclaration
 import org.jetbrains.dukat.tsmodel.ClassDeclaration
 import org.jetbrains.dukat.tsmodel.ExpressionStatementDeclaration
 import org.jetbrains.dukat.tsmodel.FunctionDeclaration
 import org.jetbrains.dukat.tsmodel.IfStatementDeclaration
-import org.jetbrains.dukat.tsmodel.InterfaceDeclaration
 import org.jetbrains.dukat.tsmodel.ModuleDeclaration
 import org.jetbrains.dukat.tsmodel.ReturnStatementDeclaration
 import org.jetbrains.dukat.tsmodel.ThrowStatementDeclaration
@@ -33,11 +32,11 @@ fun IfStatementDeclaration.calculateConstraints(owner: PropertyOwner, path: Path
     val conditionConstraints = condition.calculateConstraints(owner, path)
 
     return when (path.getNextDirection()) {
-        PathWalker.Direction.First -> {
+        PathWalker.Direction.Left -> {
             conditionConstraints += TruthyConstraint
             thenStatement.calculateConstraints(owner, path)
         }
-        PathWalker.Direction.Second -> {
+        PathWalker.Direction.Right -> {
             conditionConstraints += FalsyConstraint
             elseStatement?.calculateConstraints(owner, path)
         }
@@ -48,11 +47,11 @@ fun WhileStatementDeclaration.calculateConstraints(owner: PropertyOwner, path: P
     val conditionalConstraint = condition.calculateConstraints(owner, path)
 
     return when (path.getNextDirection()) {
-        PathWalker.Direction.First -> {
+        PathWalker.Direction.Left -> {
             conditionalConstraint += TruthyConstraint
             statement.calculateConstraints(owner, path)
         }
-        PathWalker.Direction.Second -> {
+        PathWalker.Direction.Right -> {
             conditionalConstraint += FalsyConstraint
             null
         }
@@ -83,8 +82,6 @@ fun TopLevelDeclaration.calculateConstraints(owner: PropertyOwner, path: PathWal
         is BlockDeclaration -> return this.calculateConstraints(owner, path)
         is ReturnStatementDeclaration -> return this.calculateConstraints(owner, path)
         is ThrowStatementDeclaration -> return this.calculateConstraints(owner, path)
-        is InterfaceDeclaration,
-        is ModuleDeclaration -> { /* These statements aren't supported in JS (ignore them) */ }
         else -> raiseConcern("Unexpected top level entity type <${this::class}>") {  }
     }
 
