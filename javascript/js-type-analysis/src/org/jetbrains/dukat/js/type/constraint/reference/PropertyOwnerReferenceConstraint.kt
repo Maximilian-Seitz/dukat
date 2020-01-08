@@ -3,8 +3,7 @@ package org.jetbrains.dukat.js.type.constraint.reference
 import org.jetbrains.dukat.astCommon.IdentifierEntity
 import org.jetbrains.dukat.js.type.constraint.Constraint
 import org.jetbrains.dukat.js.type.constraint.properties.PropertyOwnerConstraint
-import org.jetbrains.dukat.js.type.property_owner.PropertyOwner
-import org.jetbrains.dukat.panic.raiseConcern
+import org.jetbrains.dukat.js.type.propertyOwner.PropertyOwner
 
 abstract class PropertyOwnerReferenceConstraint(parent: PropertyOwner) : PropertyOwnerConstraint(parent) {
     private val modifiedProperties = LinkedHashMap<String, Constraint>()
@@ -22,13 +21,14 @@ abstract class PropertyOwnerReferenceConstraint(parent: PropertyOwner) : Propert
      * to apply properties to the resolved reference.
      */
     protected fun Constraint.resolveWithProperties() : Constraint {
-        if(this is PropertyOwner) {
+        val copy = this.resolve()
+
+        if(copy is PropertyOwner) {
             modifiedProperties.forEach { (name, constraint) ->
-                //TODO take composite constraints into account here
-                this[name] = constraint
+                copy[name] = constraint
             }
         }
 
-        return this.resolve()
+        return copy.resolve()
     }
 }

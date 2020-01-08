@@ -1,4 +1,4 @@
-import * as ts from "typescript-services-api";
+import * as ts from "typescript";
 import {
     Block,
     Expression, HeritageClauseDeclaration,
@@ -51,6 +51,10 @@ export class AstExpressionConverter {
 
     createNewExpression(expression: Expression, args: Array<Expression>) {
         return AstExpressionFactory.createNewExpressionDeclarationAsExpression(expression, args);
+    }
+
+    createConditionalExpression(condition: Expression, whenTrue: Expression, whenFalse: Expression) {
+        return AstExpressionFactory.createConditionalExpressionDeclarationAsExpression(condition, whenTrue, whenFalse);
     }
 
     createNameExpression(name: NameEntity): Expression {
@@ -114,6 +118,22 @@ export class AstExpressionConverter {
         )
     }
 
+    convertBody(body: ts.Node | null): Block | null {
+        if (body) {
+            if (ts.isBlock(body)) {
+                return this.astConverter.convertBlock(body)
+            } else {
+                return this.astFactory.createBlockDeclaration(
+                    [
+                        this.astFactory.createReturnStatement(this.convertExpression(body))
+                    ]
+                )
+            }
+        } else {
+            return null
+        }
+    }
+
     convertFunctionExpression(expression: ts.FunctionExpression): Expression {
         let name = expression.name ? expression.name.getText() : "";
 
@@ -131,8 +151,12 @@ export class AstExpressionConverter {
             returnType,
             typeParameterDeclarations,
             this.astConverter.convertModifiers(expression.modifiers),
-            this.astConverter.convertBlock(expression.body)
+            this.convertBody(expression.body)
         )
+    }
+
+    convertArrowFunctionExpression(expression: ts.ArrowFunction): Expression {
+        return this.convertFunctionExpression(expression)
     }
 
     convertClassExpression(expression: ts.ClassExpression): Expression {
@@ -140,7 +164,7 @@ export class AstExpressionConverter {
             this.astFactory.createIdentifierDeclarationAsNameEntity(""),
             this.astConverter.convertClassElementsToMembers(expression.members),
             this.astConverter.convertTypeParams(expression.typeParameters),
-            this.astConverter.convertHeritageClauses(expression.heritageClauses),
+            this.astConverter.convertHeritageClauses(expression.heritageClauses, expression),
             this.astConverter.convertModifiers(expression.modifiers)
         );
     }
@@ -177,6 +201,14 @@ export class AstExpressionConverter {
             this.convertExpression(expression.expression),
             expression.arguments ?
                 expression.arguments.map(arg => this.convertExpression(arg)) : []
+        )
+    }
+
+    convertConditionalExpression(expression: ts.ConditionalExpression): Expression {
+        return this.createConditionalExpression(
+            this.convertExpression(expression.condition),
+            this.convertExpression(expression.whenTrue),
+            this.convertExpression(expression.whenFalse)
         )
     }
 
@@ -318,6 +350,8 @@ export class AstExpressionConverter {
             return this.convertPostfixUnaryExpression(expression)
         } else if (ts.isFunctionExpression(expression)) {
             return this.convertFunctionExpression(expression)
+        } else if (ts.isArrowFunction(expression)) {
+            return this.convertArrowFunctionExpression(expression)
         } else if (ts.isClassExpression(expression)) {
             return this.convertClassExpression(expression)
         } else if (ts.isTypeOfExpression(expression)) {
@@ -338,6 +372,8 @@ export class AstExpressionConverter {
             return this.convertObjectLiteralExpression(expression);
         } else if (ts.isArrayLiteralExpression(expression)) {
             return this.convertArrayLiteralExpression(expression);
+        } else if (ts.isConditionalExpression(expression)) {
+            return this.convertConditionalExpression(expression);
         } else if (ts.isToken(expression)) {
             return this.convertToken(expression)
         } else {

@@ -1,4 +1,4 @@
-import * as ts from "typescript-services-api";
+import * as ts from "typescript";
 import {createLogger} from "./Logger";
 import {uid} from "./uid";
 import {
@@ -62,7 +62,9 @@ export class AstConverter {
 
         if (sourceFile.resolvedTypeReferenceDirectiveNames instanceof Map) {
           for (let [_, referenceDirective] of sourceFile.resolvedTypeReferenceDirectiveNames) {
-            referencedFiles.add(tsInternals.normalizePath(referenceDirective.resolvedFileName));
+            if (referenceDirective && referenceDirective.hasOwnProperty("resolvedFileName")) {
+                referencedFiles.add(tsInternals.normalizePath(referenceDirective.resolvedFileName));
+            }
           }
         }
 
@@ -373,7 +375,19 @@ export class AstConverter {
                                 return this.astFactory.createTypeParamReferenceDeclarationAsParamValue(entity);
                             }
 
-                            typeReference = this.astFactory.createReferenceEntity(this.exportContext.getUID(declaration));
+                            if (ts.isImportSpecifier(declaration)) {
+                                let typeOsSymbol = this.typeChecker.getDeclaredTypeOfSymbol(symbol);
+                                if (typeOsSymbol && typeOsSymbol.symbol && Array.isArray(typeOsSymbol.symbol.declarations)) {
+                                    let declarationFromSymbol = typeOsSymbol.symbol.declarations[0];
+                                    //TODO: encountered in @types/express, need to work on a separate test case
+                                    let uidContext =  (declarationFromSymbol.parent && ts.isTypeAliasDeclaration(declarationFromSymbol.parent))?
+                                                            declarationFromSymbol.parent : declarationFromSymbol;
+                                    typeReference = this.astFactory.createReferenceEntity(this.exportContext.getUID(uidContext));
+                                }
+                            } else {
+                                typeReference = this.astFactory.createReferenceEntity(this.exportContext.getUID(declaration));
+                            }
+
                         }
                     }
                 }
@@ -409,7 +423,12 @@ export class AstConverter {
             } else if (ts.isThisTypeNode(type)) {
                 return this.astFactory.createThisTypeDeclaration()
             } else if (ts.isLiteralTypeNode(type)) {
-                return this.astFactory.createStringLiteralDeclaration(type.literal.getText())
+                // TODO: we need to pass information on literal futher and convert it in some lowering
+                if ((type.literal.kind == ts.SyntaxKind.TrueKeyword) || (type.literal.kind == ts.SyntaxKind.FalseKeyword)) {
+                    return this.createTypeDeclaration("boolean");
+                } else {
+                    return this.astFactory.createStringLiteralDeclaration(type.literal.getText());
+                }
             } else if (ts.isTupleTypeNode(type)) {
                 return this.astFactory.createTupleDeclaration(type.elementTypes.map(elementType => this.convertType(elementType)))
             } else if (ts.isTypePredicateNode(type)) {
@@ -434,8 +453,9 @@ export class AstConverter {
 
     convertParameterDeclaration(param: ts.ParameterDeclaration, index: number): ParameterDeclaration {
         let initializer: Expression | null = null;
+
         if (param.initializer != null) {
-            initializer = this.astExpressionConverter.convertUnknownExpression(param.initializer)
+            initializer = this.astExpressionConverter.convertExpression(param.initializer)
         }
 
         let paramType = this.convertType(param.type);
@@ -575,20 +595,21 @@ export class AstConverter {
     }
 
 
-    convertTypeLiteralToInterfaceDeclaration(name: string, typeLiteral: ts.TypeLiteralNode, typeParams: ts.NodeArray<ts.TypeParameterDeclaration> | undefined): Declaration {
+    convertTypeLiteralToInterfaceDeclaration(uid: string, name: string, typeLiteral: ts.TypeLiteralNode, typeParams: ts.NodeArray<ts.TypeParameterDeclaration> | undefined): Declaration {
         return this.astFactory.createInterfaceDeclaration(
           this.astFactory.createIdentifierDeclarationAsNameEntity(name),
           this.convertMembersToInterfaceMemberDeclarations(typeLiteral.members),
           this.convertTypeParams(typeParams),
           [],
           [],
-          this.exportContext.getUID(typeLiteral)
+          uid
         );
     }
 
     convertTypeLiteralToObjectLiteralDeclaration(typeLiteral: ts.TypeLiteralNode): TypeDeclaration {
         return this.astFactory.createObjectLiteral(
-          this.convertMembersToInterfaceMemberDeclarations(typeLiteral.members)
+          this.convertMembersToInterfaceMemberDeclarations(typeLiteral.members),
+          this.exportContext.getUID(typeLiteral)
         );
     }
 
@@ -652,9 +673,8 @@ export class AstConverter {
         return this.astFactory.createQualifiedNameDeclaration(convertedExpression, name);
     }
 
-    convertHeritageClauses(heritageClauses: ts.NodeArray<ts.HeritageClause> | undefined): Array<HeritageClauseDeclaration> {
+    convertHeritageClauses(heritageClauses: ts.NodeArray<ts.HeritageClause> | undefined, parent: ts.Node): Array<HeritageClauseDeclaration> {
         let parentEntities: Array<HeritageClauseDeclaration> = [];
-
 
         if (heritageClauses) {
             for (let heritageClause of heritageClauses) {
@@ -679,27 +699,36 @@ export class AstConverter {
                         name = this.astFactory.createIdentifierDeclarationAsNameEntity(expression.getText());
                     }
 
-                    let typeReference: ReferenceEntity | null = null;
-                    let typeResolved = this.typeChecker.getTypeFromTypeNode(type) as ts.InterfaceType;
-                    let symbol = typeResolved.symbol;
+                    let uid: string | null = null;
 
+                    let symbol = this.typeChecker.getSymbolAtLocation(type.expression);
                     if (symbol) {
-                        if (Array.isArray(symbol.declarations) && (symbol.declarations[0])) {
-                            this.astVisitor.visitType(symbol.declarations[0]);
-                            typeReference = this.astFactory.createReferenceEntity(this.exportContext.getUID(symbol.declarations[0]))
+                        if (Array.isArray(symbol.declarations)) {
+                            let declaration = symbol.declarations[0];
+                            if (declaration) {
+                                this.astVisitor.visitType(declaration);
+                                uid = this.exportContext.getUID(declaration);
+                            }
                         }
                     }
 
-                    if (name) {
-                        this.registerDeclaration(
-                          this.astFactory.createHeritageClauseDeclaration(
-                            name,
-                            typeArguments,
-                            extending,
-                            typeReference,
-                          ), parentEntities
-                        );
+                    let parentUid = this.exportContext.getUID(parent);
+
+                    if (parentUid != uid) {
+                        let typeReference = uid ? this.astFactory.createReferenceEntity(uid) : null;
+
+                        if (name) {
+                            this.registerDeclaration(
+                              this.astFactory.createHeritageClauseDeclaration(
+                                name,
+                                typeArguments,
+                                extending,
+                                typeReference,
+                              ), parentEntities
+                            );
+                        }
                     }
+
 
                 }
             }
@@ -717,7 +746,7 @@ export class AstConverter {
           this.astFactory.createIdentifierDeclarationAsNameEntity(statement.name.getText()),
           this.convertClassElementsToMembers(statement.members),
           this.convertTypeParams(statement.typeParameters),
-          this.convertHeritageClauses(statement.heritageClauses),
+          this.convertHeritageClauses(statement.heritageClauses, statement),
           this.convertModifiers(statement.modifiers),
           this.exportContext.getUID(statement)
         );
@@ -741,7 +770,7 @@ export class AstConverter {
           this.astFactory.createIdentifierDeclarationAsNameEntity(statement.name.getText()),
           this.convertMembersToInterfaceMemberDeclarations(statement.members),
           this.convertTypeParams(statement.typeParameters),
-          this.convertHeritageClauses(statement.heritageClauses),
+          this.convertHeritageClauses(statement.heritageClauses, statement),
           computeDefinitions ? this.convertDefinitions(ts.SyntaxKind.InterfaceDeclaration, statement.name) : [],
           this.exportContext.getUID(statement)
         );
@@ -758,6 +787,8 @@ export class AstConverter {
                 body
             )
         }
+
+        //TODO convert other iteration statements than while statement
 
         return decl
     }
@@ -792,18 +823,10 @@ export class AstConverter {
                 this.astExpressionConverter.convertExpression(statement.expression)
             ));
         } else if (ts.isIfStatement(statement)) {
-            let elseStatement;
-
-            if (statement.elseStatement) {
-                elseStatement = this.convertTopLevelStatement(statement.elseStatement)
-            } else {
-                elseStatement = null
-            }
-
             res.push(this.astFactory.createIfStatement(
                 this.astExpressionConverter.convertExpression(statement.expression),
                 this.convertTopLevelStatement(statement.thenStatement),
-                elseStatement
+                statement.elseStatement ? this.convertTopLevelStatement(statement.elseStatement) : null
             ))
         } else if (ts.isIterationStatement(statement)) {
             let iterationStatement = this.convertIterationStatement(statement);
@@ -811,23 +834,23 @@ export class AstConverter {
             if (iterationStatement) {
                 res.push(iterationStatement)
             }
+        } else if (ts.isReturnStatement(statement)) {
+            res.push(this.astFactory.createReturnStatement(
+                statement.expression ? this.astExpressionConverter.convertExpression(statement.expression) : null
+            ));
+        } else if (ts.isThrowStatement(statement)) {
+            res.push(this.astFactory.createThrowStatement(
+                statement.expression ? this.astExpressionConverter.convertExpression(statement.expression) : null
+            ))
         } else if (ts.isBlock(statement)) {
             let block = this.convertBlockStatement(statement);
             if (block) {
                 res.push(block)
             }
-        } else if (ts.isReturnStatement(statement)) {
-            let expression : Expression | null = null;
-            if (statement.expression) {
-                expression = this.astExpressionConverter.convertExpression(statement.expression)
-            }
-
-            res.push(this.astFactory.createReturnStatement(
-                expression
-            ));
         } else if (ts.isTypeAliasDeclaration(statement)) {
             if (ts.isTypeLiteralNode(statement.type)) {
                 res.push(this.convertTypeLiteralToInterfaceDeclaration(
+                  this.exportContext.getUID(statement),
                   statement.name.getText(),
                   statement.type as ts.TypeLiteralNode,
                   statement.typeParameters

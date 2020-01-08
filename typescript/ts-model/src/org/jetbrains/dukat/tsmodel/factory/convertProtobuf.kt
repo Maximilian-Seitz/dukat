@@ -31,6 +31,7 @@ import org.jetbrains.dukat.tsmodel.SourceBundleDeclaration
 import org.jetbrains.dukat.tsmodel.SourceFileDeclaration
 import org.jetbrains.dukat.tsmodel.SourceSetDeclaration
 import org.jetbrains.dukat.tsmodel.ThisTypeDeclaration
+import org.jetbrains.dukat.tsmodel.ThrowStatementDeclaration
 import org.jetbrains.dukat.tsmodel.TopLevelDeclaration
 import org.jetbrains.dukat.tsmodel.TypeAliasDeclaration
 import org.jetbrains.dukat.tsmodel.TypeParameterDeclaration
@@ -38,6 +39,7 @@ import org.jetbrains.dukat.tsmodel.VariableDeclaration
 import org.jetbrains.dukat.tsmodel.WhileStatementDeclaration
 import org.jetbrains.dukat.tsmodel.expression.BinaryExpressionDeclaration
 import org.jetbrains.dukat.tsmodel.expression.CallExpressionDeclaration
+import org.jetbrains.dukat.tsmodel.expression.ConditionalExpressionDeclaration
 import org.jetbrains.dukat.tsmodel.expression.ElementAccessExpressionDeclaration
 import org.jetbrains.dukat.tsmodel.expression.NewExpressionDeclaration
 import org.jetbrains.dukat.tsmodel.expression.PropertyAccessExpressionDeclaration
@@ -73,6 +75,7 @@ import org.jetbrains.dukat.tsmodelproto.BooleanLiteralExpressionDeclarationProto
 import org.jetbrains.dukat.tsmodelproto.CallExpressionDeclarationProto
 import org.jetbrains.dukat.tsmodelproto.CallSignatureDeclarationProto
 import org.jetbrains.dukat.tsmodelproto.ClassDeclarationProto
+import org.jetbrains.dukat.tsmodelproto.ConditionalExpressionDeclarationProto
 import org.jetbrains.dukat.tsmodelproto.ConstructorDeclarationProto
 import org.jetbrains.dukat.tsmodelproto.DefinitionInfoDeclarationProto
 import org.jetbrains.dukat.tsmodelproto.ElementAccessExpressionDeclarationProto
@@ -109,6 +112,7 @@ import org.jetbrains.dukat.tsmodelproto.SourceFileDeclarationProto
 import org.jetbrains.dukat.tsmodelproto.SourceBundleDeclarationProto
 import org.jetbrains.dukat.tsmodelproto.SourceSetDeclarationProto
 import org.jetbrains.dukat.tsmodelproto.StringLiteralExpressionDeclarationProto
+import org.jetbrains.dukat.tsmodelproto.ThrowStatementDeclarationProto
 import org.jetbrains.dukat.tsmodelproto.TopLevelDeclarationProto
 import org.jetbrains.dukat.tsmodelproto.TypeAliasDeclarationProto
 import org.jetbrains.dukat.tsmodelproto.TypeOfExpressionDeclarationProto
@@ -284,6 +288,14 @@ fun ReturnStatementDeclarationProto.convert(): ReturnStatementDeclaration {
     )
 }
 
+fun ThrowStatementDeclarationProto.convert(): ThrowStatementDeclaration {
+    return ThrowStatementDeclaration(
+            if(hasExpression()) {
+                expression.convert()
+            } else null
+    )
+}
+
 fun TopLevelDeclarationProto.convert(): TopLevelDeclaration {
     return when {
         hasClassDeclaration() -> classDeclaration.convert()
@@ -299,6 +311,7 @@ fun TopLevelDeclarationProto.convert(): TopLevelDeclaration {
         hasWhileStatement() -> whileStatement.convert()
         hasExpressionStatement() -> expressionStatement.convert()
         hasReturnStatement() -> returnStatement.convert()
+        hasThrowStatement() -> throwStatement.convert()
         hasBlockStatement() -> blockStatement.convert()
         else -> throw Exception("unknown TopLevelEntity: ${this}")
     }
@@ -421,7 +434,8 @@ private fun ParameterValueDeclarationProto.convert(): ParameterValueDeclaration 
         hasObjectLiteral() -> {
             val objectLiteral = objectLiteral
             ObjectLiteralDeclaration(
-                    objectLiteral.membersList.map { it.convert() }
+                    objectLiteral.membersList.map { it.convert() },
+                    objectLiteral.uid
             )
         }
         hasFunctionTypeDeclaration() -> with(functionTypeDeclaration) {
@@ -514,6 +528,14 @@ fun NewExpressionDeclarationProto.convert(): NewExpressionDeclaration {
     )
 }
 
+fun ConditionalExpressionDeclarationProto.convert(): ConditionalExpressionDeclaration {
+    return ConditionalExpressionDeclaration(
+            condition = condition.convert(),
+            whenTrue = whenTrue.convert(),
+            whenFalse = whenFalse.convert()
+    )
+}
+
 fun UnknownExpressionDeclarationProto.convert() : UnknownExpressionDeclaration {
     return UnknownExpressionDeclaration(
             meta = meta
@@ -533,6 +555,7 @@ fun ExpressionDeclarationProto.convert() : ExpressionDeclaration {
         hasPropertyAccessExpression() -> propertyAccessExpression.convert()
         hasElementAccessExpression() -> elementAccessExpression.convert()
         hasNewExpression() -> newExpression.convert()
+        hasConditionalExpression() -> conditionalExpression.convert()
         hasUnknownExpression() -> unknownExpression.convert()
         else -> throw Exception("unknown expression: ${this}")
     }

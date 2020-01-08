@@ -4,8 +4,8 @@ import org.jetbrains.dukat.astCommon.IdentifierEntity
 import org.jetbrains.dukat.js.type.constraint.Constraint
 import org.jetbrains.dukat.js.type.constraint.reference.ReferenceConstraint
 import org.jetbrains.dukat.js.type.constraint.composite.CompositeConstraint
-import org.jetbrains.dukat.js.type.constraint.composite.UnionTypeConstraint
-import org.jetbrains.dukat.js.type.property_owner.PropertyOwner
+import org.jetbrains.dukat.js.type.constraint.immutable.CallableConstraint
+import org.jetbrains.dukat.js.type.propertyOwner.PropertyOwner
 import org.jetbrains.dukat.js.type.constraint.immutable.resolved.BigIntTypeConstraint
 import org.jetbrains.dukat.js.type.constraint.immutable.resolved.BooleanTypeConstraint
 import org.jetbrains.dukat.js.type.constraint.immutable.resolved.NoTypeConstraint
@@ -20,13 +20,14 @@ import org.jetbrains.dukat.js.type.constraint.properties.ObjectConstraint
 import org.jetbrains.dukat.js.type.constraint.properties.PropertyOwnerConstraint
 import org.jetbrains.dukat.js.type.inbuilt.arrayClass
 import org.jetbrains.dukat.js.type.inbuilt.regExpClass
-import org.jetbrains.dukat.js.type.property_owner.Scope
+import org.jetbrains.dukat.js.type.propertyOwner.Scope
 import org.jetbrains.dukat.panic.raiseConcern
 import org.jetbrains.dukat.tsmodel.ClassDeclaration
 import org.jetbrains.dukat.tsmodel.ExpressionDeclaration
 import org.jetbrains.dukat.tsmodel.FunctionDeclaration
 import org.jetbrains.dukat.tsmodel.expression.BinaryExpressionDeclaration
 import org.jetbrains.dukat.tsmodel.expression.CallExpressionDeclaration
+import org.jetbrains.dukat.tsmodel.expression.ConditionalExpressionDeclaration
 import org.jetbrains.dukat.tsmodel.expression.NewExpressionDeclaration
 import org.jetbrains.dukat.tsmodel.expression.PropertyAccessExpressionDeclaration
 import org.jetbrains.dukat.tsmodel.expression.TypeOfExpressionDeclaration
@@ -41,35 +42,11 @@ import org.jetbrains.dukat.tsmodel.expression.literal.RegExLiteralExpressionDecl
 import org.jetbrains.dukat.tsmodel.expression.literal.StringLiteralExpressionDeclaration
 import org.jetbrains.dukat.tsmodel.expression.name.IdentifierExpressionDeclaration
 
-fun List<FunctionConstraint>.pack() : FunctionConstraint {
-    return if (size == 1) {
-        this[0]
-    } else {
-        val parameters = mutableListOf<Pair<String, MutableList<Constraint>>>()
-
-        forEach {
-            it.parameterConstraints.forEachIndexed { index, (name, constraint) ->
-                if (parameters.size <= index) {
-                    parameters.add(index, name to mutableListOf())
-                }
-
-                parameters[index].second.add(constraint)
-            }
-        }
-
-        FunctionConstraint(
-                this[0].owner,
-                returnConstraints = UnionTypeConstraint(map { it.returnConstraints }),
-                parameterConstraints = parameters.map { (name, constraints) -> name to UnionTypeConstraint(constraints) }
-        )
-    }
-}
-
 fun FunctionDeclaration.addTo(owner: PropertyOwner) : FunctionConstraint? {
-    return if (this.body != null) {
+    return this.body?.let {
         val pathWalker = PathWalker()
 
-        val versions = mutableListOf<FunctionConstraint>()
+        val versions = mutableListOf<FunctionConstraint.Overload>()
 
         do {
             val functionScope = Scope(owner)
@@ -77,29 +54,26 @@ fun FunctionDeclaration.addTo(owner: PropertyOwner) : FunctionConstraint? {
             val parameterConstraints = MutableList(parameters.size) { i ->
                 // Store constraints of parameters in scope,
                 // and in parameter list (in case the variable is replaced)
-                val parameterConstraint = CompositeConstraint()
+                val parameterConstraint = CompositeConstraint(owner)
                 functionScope[parameters[i].name] = parameterConstraint
                 parameters[i].name to parameterConstraint
             }
 
-            val returnTypeConstraints = body!!.calculateConstraints(functionScope, pathWalker) ?: VoidTypeConstraint
+            val returnTypeConstraints = it.calculateConstraints(functionScope, pathWalker) ?: VoidTypeConstraint
 
-            versions.add(FunctionConstraint(
-                    owner,
+            versions.add(FunctionConstraint.Overload(
                     returnConstraints = returnTypeConstraints,
                     parameterConstraints = parameterConstraints
             ))
         } while (pathWalker.startNextPath())
 
-        val functionConstraint = versions.pack()
+        val functionConstraint = FunctionConstraint(owner, versions)
 
         if (name != "") {
             owner[name] = functionConstraint
         }
 
         functionConstraint
-    } else {
-        null
     }
 }
 
@@ -138,11 +112,11 @@ fun BinaryExpressionDeclaration.calculateConstraints(owner: PropertyOwner, path:
         // Non-assignments
         "&&", "||" -> {
             when (path.getNextDirection()) {
-                PathWalker.Direction.First -> {
+                PathWalker.Direction.Left -> {
                     left.calculateConstraints(owner, path)
                     //right isn't being evaluated
                 }
-                PathWalker.Direction.Second -> {
+                PathWalker.Direction.Right -> {
                     left.calculateConstraints(owner, path)
                     right.calculateConstraints(owner, path)
                 }
@@ -171,7 +145,7 @@ fun BinaryExpressionDeclaration.calculateConstraints(owner: PropertyOwner, path:
         else -> {
             left.calculateConstraints(owner, path)
             right.calculateConstraints(owner, path)
-            CompositeConstraint(NoTypeConstraint)
+            CompositeConstraint(owner, NoTypeConstraint)
         }
     }
 }
@@ -193,7 +167,7 @@ fun UnaryExpressionDeclaration.calculateConstraints(owner: PropertyOwner, path: 
             BooleanTypeConstraint
         }
         else -> {
-            CompositeConstraint(NoTypeConstraint)
+            CompositeConstraint(owner, NoTypeConstraint)
         }
     }
 }
@@ -205,19 +179,25 @@ fun TypeOfExpressionDeclaration.calculateConstraints(owner: PropertyOwner, path:
 
 fun CallExpressionDeclaration.calculateConstraints(owner: PropertyOwner, path: PathWalker) : Constraint {
     val callTargetConstraints = expression.calculateConstraints(owner, path)
+    var callResultConstraint: Constraint = CallResultConstraint(owner, callTargetConstraints)
     val argumentConstraints = arguments.map { it.calculateConstraints(owner, path) }
 
     argumentConstraints.forEachIndexed { argumentNumber, arg ->
         arg += CallArgumentConstraint(
+                owner,
                 callTargetConstraints,
                 argumentNumber
         )
     }
 
-    return CallResultConstraint(
-            owner,
-            callTargetConstraints
-    )
+    if (callTargetConstraints is CompositeConstraint) {
+        callResultConstraint = CompositeConstraint(owner)
+
+        //TODO add arguments to CallableConstraint
+        callTargetConstraints += CallableConstraint(argumentConstraints.size, callResultConstraint)
+    }
+
+    return callResultConstraint
 }
 
 fun NewExpressionDeclaration.calculateConstraints(owner: PropertyOwner, path: PathWalker) : Constraint {
@@ -230,6 +210,15 @@ fun NewExpressionDeclaration.calculateConstraints(owner: PropertyOwner, path: Pa
             owner = owner,
             instantiatedClass = classConstraints
     )
+}
+
+fun ConditionalExpressionDeclaration.calculateConstraints(owner: PropertyOwner, path: PathWalker) : Constraint {
+    condition.calculateConstraints(owner, path)
+
+    return when (path.getNextDirection()) {
+        PathWalker.Direction.Left -> whenTrue.calculateConstraints(owner, path)
+        PathWalker.Direction.Right -> whenFalse.calculateConstraints(owner, path)
+    }
 }
 
 fun ObjectLiteralExpressionDeclaration.calculateConstraints(owner: PropertyOwner, path: PathWalker) : ObjectConstraint {
@@ -262,7 +251,7 @@ fun LiteralExpressionDeclaration.calculateConstraints(owner: PropertyOwner, path
         is ObjectLiteralExpressionDeclaration -> this.calculateConstraints(owner, path)
         is ArrayLiteralExpressionDeclaration -> this.calculateConstraints(owner, path)
         is RegExLiteralExpressionDeclaration -> this.calculateConstraints(owner)
-        else -> raiseConcern("Unexpected literal expression type <${this::class}>") { CompositeConstraint(NoTypeConstraint) }
+        else -> raiseConcern("Unexpected literal expression type <${this::class}>") { CompositeConstraint(owner, NoTypeConstraint) }
     }
 }
 
@@ -271,13 +260,14 @@ fun ExpressionDeclaration.calculateConstraints(owner: PropertyOwner, path: PathW
         is FunctionDeclaration -> this.addTo(owner) ?: NoTypeConstraint
         is ClassDeclaration -> this.addTo(owner, path) ?: NoTypeConstraint
         is IdentifierExpressionDeclaration -> owner[this] ?: ReferenceConstraint(this.identifier, owner)
-        is PropertyAccessExpressionDeclaration -> owner[this, path] ?: CompositeConstraint() //TODO replace this with a reference constraint (of some sort)
+        is PropertyAccessExpressionDeclaration -> owner[this, path] ?: CompositeConstraint(owner)
         is BinaryExpressionDeclaration -> this.calculateConstraints(owner, path)
         is UnaryExpressionDeclaration -> this.calculateConstraints(owner, path)
         is TypeOfExpressionDeclaration -> this.calculateConstraints(owner, path)
         is CallExpressionDeclaration -> this.calculateConstraints(owner, path)
         is NewExpressionDeclaration -> this.calculateConstraints(owner, path)
+        is ConditionalExpressionDeclaration -> this.calculateConstraints(owner, path)
         is LiteralExpressionDeclaration -> this.calculateConstraints(owner, path)
-        else -> CompositeConstraint(NoTypeConstraint)
+        else -> CompositeConstraint(owner, NoTypeConstraint)
     }
 }

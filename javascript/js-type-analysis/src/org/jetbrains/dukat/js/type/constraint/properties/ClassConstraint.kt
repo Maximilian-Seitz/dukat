@@ -1,7 +1,7 @@
 package org.jetbrains.dukat.js.type.constraint.properties
 
 import org.jetbrains.dukat.js.type.constraint.Constraint
-import org.jetbrains.dukat.js.type.property_owner.PropertyOwner
+import org.jetbrains.dukat.js.type.propertyOwner.PropertyOwner
 
 class ClassConstraint(owner: PropertyOwner, prototype: ObjectConstraint = ObjectConstraint(owner)) : PropertyOwnerConstraint(owner) {
     val propertyNames: Set<String>
@@ -23,7 +23,7 @@ class ClassConstraint(owner: PropertyOwner, prototype: ObjectConstraint = Object
         return staticMembers[name]
     }
 
-    override fun resolve(): ClassConstraint {
+    override fun resolve(resolveAsInput: Boolean): ClassConstraint {
         val constructorConstraint = constructorConstraint
         if (constructorConstraint != null) {
             this.constructorConstraint = constructorConstraint.resolve()

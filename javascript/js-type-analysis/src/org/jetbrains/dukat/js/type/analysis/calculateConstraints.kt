@@ -1,19 +1,19 @@
 package org.jetbrains.dukat.js.type.analysis
 
 import org.jetbrains.dukat.js.type.constraint.Constraint
-import org.jetbrains.dukat.js.type.constraint.immutable.resolved.BooleanTypeConstraint
 import org.jetbrains.dukat.js.type.constraint.immutable.resolved.NoTypeConstraint
+import org.jetbrains.dukat.js.type.constraint.immutable.resolved.ThrowConstraint
 import org.jetbrains.dukat.js.type.constraint.immutable.resolved.VoidTypeConstraint
-import org.jetbrains.dukat.js.type.property_owner.PropertyOwner
+import org.jetbrains.dukat.js.type.propertyOwner.PropertyOwner
 import org.jetbrains.dukat.panic.raiseConcern
 import org.jetbrains.dukat.tsmodel.BlockDeclaration
 import org.jetbrains.dukat.tsmodel.ClassDeclaration
 import org.jetbrains.dukat.tsmodel.ExpressionStatementDeclaration
 import org.jetbrains.dukat.tsmodel.FunctionDeclaration
 import org.jetbrains.dukat.tsmodel.IfStatementDeclaration
-import org.jetbrains.dukat.tsmodel.InterfaceDeclaration
 import org.jetbrains.dukat.tsmodel.ModuleDeclaration
 import org.jetbrains.dukat.tsmodel.ReturnStatementDeclaration
+import org.jetbrains.dukat.tsmodel.ThrowStatementDeclaration
 import org.jetbrains.dukat.tsmodel.TopLevelDeclaration
 import org.jetbrains.dukat.tsmodel.VariableDeclaration
 import org.jetbrains.dukat.tsmodel.WhileStatementDeclaration
@@ -27,20 +27,20 @@ fun VariableDeclaration.addTo(owner: PropertyOwner, path: PathWalker) {
 }
 
 fun IfStatementDeclaration.calculateConstraints(owner: PropertyOwner, path: PathWalker) : Constraint? {
-    condition.calculateConstraints(owner, path) += BooleanTypeConstraint
+    condition.calculateConstraints(owner, path)
 
     return when (path.getNextDirection()) {
-        PathWalker.Direction.First -> thenStatement.calculateConstraints(owner, path)
-        PathWalker.Direction.Second -> elseStatement?.calculateConstraints(owner, path)
+        PathWalker.Direction.Left -> thenStatement.calculateConstraints(owner, path)
+        PathWalker.Direction.Right -> elseStatement?.calculateConstraints(owner, path)
     }
 }
 
 fun WhileStatementDeclaration.calculateConstraints(owner: PropertyOwner, path: PathWalker) : Constraint? {
-    condition.calculateConstraints(owner, path) += BooleanTypeConstraint
+    condition.calculateConstraints(owner, path)
 
     return when (path.getNextDirection()) {
-        PathWalker.Direction.First -> statement.calculateConstraints(owner, path)
-        PathWalker.Direction.Second -> null
+        PathWalker.Direction.Left -> statement.calculateConstraints(owner, path)
+        PathWalker.Direction.Right -> null
     }
 }
 
@@ -50,6 +50,11 @@ fun ExpressionStatementDeclaration.calculateConstraints(owner: PropertyOwner, pa
 
 fun ReturnStatementDeclaration.calculateConstraints(owner: PropertyOwner, path: PathWalker) : Constraint {
     return expression?.calculateConstraints(owner, path) ?: VoidTypeConstraint
+}
+
+fun ThrowStatementDeclaration.calculateConstraints(owner: PropertyOwner, path: PathWalker) : Constraint {
+    expression?.calculateConstraints(owner, path)
+    return ThrowConstraint
 }
 
 fun TopLevelDeclaration.calculateConstraints(owner: PropertyOwner, path: PathWalker) : Constraint? {
@@ -62,8 +67,7 @@ fun TopLevelDeclaration.calculateConstraints(owner: PropertyOwner, path: PathWal
         is ExpressionStatementDeclaration -> this.calculateConstraints(owner, path)
         is BlockDeclaration -> return this.calculateConstraints(owner, path)
         is ReturnStatementDeclaration -> return this.calculateConstraints(owner, path)
-        is InterfaceDeclaration,
-        is ModuleDeclaration -> { /* These statements aren't supported in JS (ignore them) */ }
+        is ThrowStatementDeclaration -> return this.calculateConstraints(owner, path)
         else -> raiseConcern("Unexpected top level entity type <${this::class}>") {  }
     }
 

@@ -1,3 +1,5 @@
+import org.gradle.internal.os.OperatingSystem;
+
 plugins {
     id "java"
     id "com.google.protobuf"
@@ -6,7 +8,7 @@ plugins {
 
 def targetMainDir = "${project.buildDir}/generated/source/proto/main"
 
-def nodeModulesPath = "${project.buildDir}/node"
+def nodeModulesPath = "${project.buildDir}/ts-model-proto-npm"
 
 node {
     workDir = gradle.nodeWorkingDir
@@ -19,23 +21,21 @@ node {
     download = true
 }
 
-task addProtocGenTs(type: YarnTask) {
-    outputs.dir(nodeModulesPath)
-    args = ['add', 'ts-protoc-gen']
+
+task prepareNpmPackage(type: Copy) {
+    from "package.template.json"
+    into nodeModulesPath
+    rename { String fileName -> fileName.replace(".template", "") }
+
+    from "yarn.lock"
+    into nodeModulesPath
 }
 
-task moveGeneratedTS() {
-    doLast {
-        def tsDir = file("$targetMainDir/ts")
+yarn.dependsOn = [yarnSetup, prepareNpmPackage]
 
-        if (tsDir.exists() && tsDir.isDirectory()) {
-            tsDir.eachFile { file ->
-                file.renameTo("$targetMainDir/js/${file.getName()}")
-            }
-
-            tsDir.delete()
-        }
-    }
+task copyGeneratedTs(type: Copy) {
+    from "$targetMainDir/ts"
+    into "$targetMainDir/js"
 }
 
 dependencies {
@@ -49,7 +49,7 @@ sourceSets {
 
     main {
         proto {
-            srcDirs = ['src']
+            srcDirs = ["src"]
         }
 
         java {
@@ -61,9 +61,9 @@ sourceSets {
 protobuf {
     plugins {
         ts {
-            path = file(nodeModulesPath).absolutePath + "/node_modules/ts-protoc-gen/bin/protoc-gen-ts"
+            path = file("$nodeModulesPath/node_modules/ts-protoc-gen/bin/protoc-gen-ts")
 
-            if (System.properties['os.name'].toLowerCase().contains('windows')) {
+            if (OperatingSystem.current().isWindows()) {
                 path = path + ".cmd"
             }
         }
@@ -71,9 +71,9 @@ protobuf {
 
     generateProtoTasks {
         all().each { task ->
-            if(task.getName() == 'generateProto') {
-                task.dependsOn(addProtocGenTs)
-                task.finalizedBy(moveGeneratedTS)
+            if(task.name == 'generateProto') {
+                task.dependsOn = [yarn]
+                task.finalizedBy(copyGeneratedTs)
             }
 
             task.builtins {
@@ -93,3 +93,4 @@ protobuf {
         artifact = "com.google.protobuf:protoc:${gradle.protobufImplementationVersion}"
     }
 }
+

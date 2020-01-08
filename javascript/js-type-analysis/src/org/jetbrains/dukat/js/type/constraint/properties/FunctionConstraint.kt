@@ -4,13 +4,18 @@ import org.jetbrains.dukat.js.type.constraint.Constraint
 import org.jetbrains.dukat.js.type.constraint.immutable.resolved.NoTypeConstraint
 import org.jetbrains.dukat.js.type.constraint.immutable.resolved.RecursiveConstraint
 import org.jetbrains.dukat.js.type.constraint.resolution.ResolutionState
-import org.jetbrains.dukat.js.type.property_owner.PropertyOwner
+import org.jetbrains.dukat.js.type.propertyOwner.PropertyOwner
 
 class FunctionConstraint(
         owner: PropertyOwner,
+        val overloads: List<Overload>
+) : PropertyOwnerConstraint(owner) {
+
+    data class Overload(
         val returnConstraints: Constraint,
         val parameterConstraints: List<Pair<String, Constraint>>
-) : PropertyOwnerConstraint(owner) {
+    )
+
     private val classRepresentation = ClassConstraint(owner)
 
     override fun set(name: String, data: Constraint) {
@@ -24,6 +29,20 @@ class FunctionConstraint(
 
     private var resolutionState = ResolutionState.UNRESOLVED
     private var resolvedConstraint: Constraint? = null
+
+    private fun getParameterNames() : List<String> {
+        val parameters = mutableListOf<String>()
+
+        overloads.forEach {
+            it.parameterConstraints.forEachIndexed { index, (name, _) ->
+                if (parameters.size <= index) {
+                    parameters.add(index, name)
+                }
+            }
+        }
+
+        return parameters
+    }
 
     private fun hasMembers() : Boolean {
         return if (classRepresentation.propertyNames.isNotEmpty()) {
@@ -59,21 +78,22 @@ class FunctionConstraint(
         }
     }
 
+    private fun getResolvedCallable() = FunctionConstraint(
+            owner,
+            overloads.map {
+                Overload(
+                        it.returnConstraints.resolve(),
+                        it.parameterConstraints.map { (name, constraint) -> name to constraint.resolve(resolveAsInput = true) }
+                )
+            }
+    )
+
     private fun doResolve(): Constraint {
         return if (!hasMembers()) {
-            FunctionConstraint(
-                    owner,
-                    returnConstraints.resolve(),
-                    parameterConstraints.map { (name, constraint) -> name to constraint.resolve() }
-            )
+            getResolvedCallable()
         } else {
             if (hasNonStaticMembers()) {
-                classRepresentation.constructorConstraint = FunctionConstraint(
-                        owner,
-                        returnConstraints.resolve(),
-                        parameterConstraints.map { (name, constraint) -> name to constraint.resolve() }
-                )
-
+                classRepresentation.constructorConstraint = getResolvedCallable()
                 classRepresentation.resolve()
             } else {
                 val objectRepresentation = ObjectConstraint(owner)
@@ -84,18 +104,14 @@ class FunctionConstraint(
                     objectRepresentation[it] = classRepresentation[it]!!
                 }
 
-                objectRepresentation.callSignatureConstraint = FunctionConstraint(
-                        owner,
-                        returnConstraints.resolve(),
-                        parameterConstraints.map { (name, constraint) -> name to constraint.resolve() }
-                )
+                objectRepresentation.callSignatureConstraints.add(getResolvedCallable())
 
                 objectRepresentation.resolve()
             }
         }
     }
 
-    override fun resolve(): Constraint {
+    override fun resolve(resolveAsInput: Boolean): Constraint {
         return when (resolutionState) {
             ResolutionState.UNRESOLVED -> {
                 resolutionState = ResolutionState.RESOLVING
@@ -108,8 +124,10 @@ class FunctionConstraint(
             ResolutionState.RESOLVING -> {
                 FunctionConstraint(
                         owner,
-                        RecursiveConstraint,
-                        parameterConstraints.map { (name, _) -> name to NoTypeConstraint }
+                        listOf(Overload(
+                                returnConstraints = RecursiveConstraint,
+                                parameterConstraints = getParameterNames().map { it to NoTypeConstraint }
+                        ))
                 )
             }
 

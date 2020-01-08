@@ -9,7 +9,7 @@ import org.jetbrains.dukat.js.type.constraint.properties.ClassConstraint
 import org.jetbrains.dukat.js.type.constraint.properties.FunctionConstraint
 import org.jetbrains.dukat.js.type.constraint.properties.ObjectConstraint
 import org.jetbrains.dukat.js.type.constraint.properties.PropertyOwnerConstraint
-import org.jetbrains.dukat.js.type.property_owner.PropertyOwner
+import org.jetbrains.dukat.js.type.propertyOwner.PropertyOwner
 
 internal fun Class(build: ClassBuilder.() -> Unit) : Lazy<ClassConstraint> {
     return lazy {
@@ -38,7 +38,7 @@ internal open class PropertyOwnerConstraintBuilder(private val propertyOwnerCons
     val any = NoTypeConstraint
 
     protected fun defineFunctionIn(owner: PropertyOwner, returnType: Constraint, definition: Pair<String, List<Pair<String, Constraint>>>) {
-        owner[definition.first] = FunctionConstraint(propertyOwnerConstraint, returnType, definition.second)
+        owner[definition.first] = FunctionConstraint(propertyOwnerConstraint, listOf(FunctionConstraint.Overload(returnType, definition.second)))
     }
 
     operator fun String.invoke(vararg params: Pair<String, Constraint>) : Pair<String, List<Pair<String, Constraint>>> {

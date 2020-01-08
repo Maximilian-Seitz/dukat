@@ -33,11 +33,12 @@ import org.jetbrains.dukat.tsmodel.types.TypeParamReferenceDeclaration
 
 internal fun Entity.getUID(): String {
     return when (this) {
-        is TypeAliasDeclaration -> uid
-        is FunctionDeclaration -> uid
         is ClassDeclaration -> uid
-        is InterfaceDeclaration -> uid
+        is FunctionDeclaration -> uid
         is GeneratedInterfaceDeclaration -> uid
+        is InterfaceDeclaration -> uid
+        is ObjectLiteralDeclaration -> uid
+        is TypeAliasDeclaration -> uid
         is VariableDeclaration -> uid
         else -> raiseConcern("unknown Entity uid ${this}") { "" };
     }
@@ -187,11 +188,6 @@ private fun MemberEntity.isIdenticalTo(memberDeclaration: MemberEntity): Boolean
 }
 
 private fun GeneratedInterfaceDeclaration.isIdenticalTo(someInterface: GeneratedInterfaceDeclaration): Boolean {
-
-    if (packageOwner != someInterface.packageOwner) {
-        return false
-    }
-
     if (!typeParameters.isIdenticalTo(someInterface.typeParameters) { a, b -> a.isIdenticalTo(b) }) {
         return false
     }
@@ -265,7 +261,7 @@ class GeneratedInterfacesContext {
             }
         }
 
-        val generatedUid = "${uid}_GENERATED"
+        val generatedUid = "${uid}_${declaration.uid}_GENERATED"
 
         val generatedTypeParameters = typeParams.toList()
 
