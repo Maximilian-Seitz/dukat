@@ -2,10 +2,13 @@ package org.jetbrains.dukat.js.type.analysis
 
 import org.jetbrains.dukat.js.type.constraint.Constraint
 import org.jetbrains.dukat.js.type.constraint.composite.CompositeConstraint
+import org.jetbrains.dukat.js.type.constraint.conditional.EqualsConstraint
 import org.jetbrains.dukat.js.type.constraint.conditional.NegatedConstraint
 import org.jetbrains.dukat.js.type.constraint.immutable.resolved.BooleanTypeConstraint
 import org.jetbrains.dukat.js.type.constraint.immutable.resolved.NoTypeConstraint
 import org.jetbrains.dukat.js.type.constraint.immutable.resolved.NumberTypeConstraint
+import org.jetbrains.dukat.js.type.constraint.immutable.resolved.values.FalsyConstraint
+import org.jetbrains.dukat.js.type.constraint.immutable.resolved.values.TruthyConstraint
 import org.jetbrains.dukat.js.type.propertyOwner.PropertyOwner
 import org.jetbrains.dukat.tsmodel.ExpressionDeclaration
 import org.jetbrains.dukat.tsmodel.expression.BinaryExpressionDeclaration
@@ -27,15 +30,31 @@ fun calculateConstraintsFromBinaryOperation(owner: PropertyOwner, path: PathWalk
         }
 
         // Non-assignments
-        "&&", "||" -> {
+        "||" -> {
             when (path.getNextDirection()) {
                 PathWalker.Direction.Left -> {
-                    left.calculateConstraints(owner, path)
+                    left.calculateConstraints(owner, path).also {
+                        it += TruthyConstraint
+                    }
                     //right isn't being evaluated
                 }
                 PathWalker.Direction.Right -> {
-                    left.calculateConstraints(owner, path)
+                    left.calculateConstraints(owner, path) += FalsyConstraint
                     right.calculateConstraints(owner, path)
+                }
+            }
+        }
+        "&&" -> {
+            when (path.getNextDirection()) {
+                PathWalker.Direction.Left -> {
+                    left.calculateConstraints(owner, path) += TruthyConstraint
+                    right.calculateConstraints(owner, path)
+                }
+                PathWalker.Direction.Right -> {
+                    left.calculateConstraints(owner, path).also {
+                        it += FalsyConstraint
+                    }
+                    //right isn't being evaluated
                 }
             }
         }
@@ -49,10 +68,16 @@ fun calculateConstraintsFromBinaryOperation(owner: PropertyOwner, path: PathWalk
             right.calculateConstraints(owner, path)
             NumberTypeConstraint
         }
-        "==", "===", "in", "instanceof" -> {
+        "==", "in", "instanceof" -> {
             left.calculateConstraints(owner, path)
             right.calculateConstraints(owner, path)
             BooleanTypeConstraint
+        }
+        "===" -> {
+            EqualsConstraint(
+                    left.calculateConstraints(owner, path),
+                    right.calculateConstraints(owner, path)
+            )
         }
         "!=" -> {
             NegatedConstraint(

@@ -23,6 +23,8 @@ class CompositeConstraint(
     private val neededProperties = LinkedHashMap<String, Constraint>()
     private val allProperties = LinkedHashMap<String, Constraint>()
 
+    private var isBeingFlattened = false
+
     override fun set(name: String, data: Constraint) {
         allProperties[name] = data
     }
@@ -49,12 +51,20 @@ class CompositeConstraint(
     }
 
     private fun getFlatConstraints() : List<Constraint> {
-        return constraints.flatMap { constraint ->
-            if(constraint is CompositeConstraint) {
-                constraint.getFlatConstraints()
-            } else {
-                listOf(constraint)
+        return if (isBeingFlattened) {
+            emptyList()
+        } else {
+            isBeingFlattened = true
+            val constraints = constraints.flatMap { constraint ->
+                if(constraint is CompositeConstraint) {
+                    constraint.getFlatConstraints()
+                } else {
+                    listOf(constraint)
+                }
             }
+            isBeingFlattened = false
+
+            constraints
         }
     }
 
