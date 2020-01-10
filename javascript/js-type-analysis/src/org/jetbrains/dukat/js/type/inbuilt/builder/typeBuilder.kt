@@ -45,11 +45,7 @@ internal open class PropertyOwnerConstraintBuilder(private val propertyOwnerCons
     val string = StringTypeConstraint
     val any = NoTypeConstraint
 
-    fun vararg(argProvider: (Int) -> Pair<String, Constraint>) = Array(20, argProvider)
-
-    fun vararg(type: Constraint, nameProvider: (Int) -> String) : Array<Pair<String, Constraint>> {
-        return vararg { nameProvider(it) to type }
-    }
+    fun vararg(argProvider: (Int) -> Pair<String, Constraint>) = Array(20) { argProvider(it + 1) }
 
     protected fun defineFunctionIn(owner: PropertyOwner, name: String, returnType: Constraint, params: List<Pair<String, Constraint>>) {
         owner[name] = FunctionConstraint(propertyOwnerConstraint, listOf(FunctionConstraint.Overload(returnType, params)))
