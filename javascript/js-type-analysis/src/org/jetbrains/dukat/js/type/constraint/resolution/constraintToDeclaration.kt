@@ -1,6 +1,7 @@
 package org.jetbrains.dukat.js.type.constraint.resolution
 
 import org.jetbrains.dukat.astCommon.IdentifierEntity
+import org.jetbrains.dukat.js.identifiers.JavaScriptIdentifiers
 import org.jetbrains.dukat.js.type.constraint.Constraint
 import org.jetbrains.dukat.js.type.constraint.composite.CompositeConstraint
 import org.jetbrains.dukat.js.type.constraint.composite.UnionTypeConstraint
@@ -16,12 +17,12 @@ import org.jetbrains.dukat.js.type.constraint.properties.ClassConstraint
 import org.jetbrains.dukat.js.type.constraint.properties.FunctionConstraint
 import org.jetbrains.dukat.js.type.constraint.properties.ObjectConstraint
 import org.jetbrains.dukat.js.type.propertyOwner.PropertyOwner
-import org.jetbrains.dukat.js.type.type.anyNullableType
-import org.jetbrains.dukat.js.type.type.booleanType
-import org.jetbrains.dukat.js.type.type.nothingType
-import org.jetbrains.dukat.js.type.type.numberType
-import org.jetbrains.dukat.js.type.type.stringType
-import org.jetbrains.dukat.js.type.type.voidType
+import org.jetbrains.dukat.js.type.type.ANY_NULLABLE_TYPE
+import org.jetbrains.dukat.js.type.type.BOOLEAN_TYPE
+import org.jetbrains.dukat.js.type.type.NOTHING_TYPE
+import org.jetbrains.dukat.js.type.type.NUMBER_TYPE
+import org.jetbrains.dukat.js.type.type.STRING_TYPE
+import org.jetbrains.dukat.js.type.type.VOID_TYPE
 import org.jetbrains.dukat.panic.raiseConcern
 import org.jetbrains.dukat.tsmodel.CallSignatureDeclaration
 import org.jetbrains.dukat.tsmodel.ClassDeclaration
@@ -122,7 +123,7 @@ private fun ClassConstraint.toDeclaration(name: String, modifiers: List<Modifier
         members.addAll(constructorConstraint.toConstructors())
     }
 
-    val prototype = this["prototype"]
+    val prototype = this[JavaScriptIdentifiers.PROTOTYPE]
 
     if (prototype is ObjectConstraint) {
         members.addAll(
@@ -137,7 +138,7 @@ private fun ClassConstraint.toDeclaration(name: String, modifiers: List<Modifier
     members.addAll(
             propertyNames.flatMap { memberName ->
                 //Don't output the prototype object
-                if (memberName != "prototype") {
+                if (memberName != JavaScriptIdentifiers.PROTOTYPE) {
                     this[memberName]?.toMemberDeclarations(name = memberName, isStatic = true) ?: emptyList()
                 } else {
                     emptyList()
@@ -189,7 +190,7 @@ private fun ObjectConstraint.mapMembers() : List<MemberDeclaration> {
     )
 
     if (instantiatedClass is PropertyOwner) {
-        val classPrototype = instantiatedClass["prototype"]
+        val classPrototype = instantiatedClass[JavaScriptIdentifiers.PROTOTYPE]
 
         if (classPrototype is ObjectConstraint) {
             members.addAll(classPrototype.mapMembers())
@@ -208,16 +209,16 @@ private fun ObjectConstraint.toType() : ObjectLiteralDeclaration {
 
 private fun Constraint.toType() : ParameterValueDeclaration {
     return when (this) {
-        is NumberTypeConstraint -> numberType
-        is BigIntTypeConstraint -> numberType
-        is BooleanTypeConstraint -> booleanType
-        is StringTypeConstraint -> stringType
-        is VoidTypeConstraint -> voidType
-        is ThrowConstraint -> nothingType
+        is NumberTypeConstraint -> NUMBER_TYPE
+        is BigIntTypeConstraint -> NUMBER_TYPE
+        is BooleanTypeConstraint -> BOOLEAN_TYPE
+        is StringTypeConstraint -> STRING_TYPE
+        is VoidTypeConstraint -> VOID_TYPE
+        is ThrowConstraint -> NOTHING_TYPE
         is UnionTypeConstraint -> this.toType()
         is ObjectConstraint -> this.toType()
         is FunctionConstraint -> this.toType()
-        else -> anyNullableType
+        else -> ANY_NULLABLE_TYPE
     }
 }
 

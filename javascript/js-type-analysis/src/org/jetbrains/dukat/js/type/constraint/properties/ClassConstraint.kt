@@ -1,5 +1,6 @@
 package org.jetbrains.dukat.js.type.constraint.properties
 
+import org.jetbrains.dukat.js.identifiers.JavaScriptIdentifiers
 import org.jetbrains.dukat.js.type.constraint.Constraint
 import org.jetbrains.dukat.js.type.propertyOwner.PropertyOwner
 
@@ -12,7 +13,7 @@ class ClassConstraint(owner: PropertyOwner, prototype: ObjectConstraint = Object
     private val staticMembers = LinkedHashMap<String, Constraint>()
 
     init {
-        this["prototype"] = prototype
+        this[JavaScriptIdentifiers.PROTOTYPE] = prototype
     }
 
     override fun set(name: String, data: Constraint) {

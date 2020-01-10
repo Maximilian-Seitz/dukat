@@ -1,5 +1,6 @@
 package org.jetbrains.dukat.js.type.constraint.properties
 
+import org.jetbrains.dukat.js.identifiers.JavaScriptIdentifiers
 import org.jetbrains.dukat.js.type.constraint.Constraint
 import org.jetbrains.dukat.js.type.propertyOwner.PropertyOwner
 import org.jetbrains.dukat.panic.raiseConcern
@@ -24,7 +25,7 @@ class ObjectConstraint(
             properties.containsKey(name) -> properties[name]
             else -> {
                 if(instantiatedClass != null) {
-                    val classPrototype = instantiatedClass["prototype"]
+                    val classPrototype = instantiatedClass[JavaScriptIdentifiers.PROTOTYPE]
 
                     if (classPrototype is PropertyOwner) {
                         classPrototype[name]

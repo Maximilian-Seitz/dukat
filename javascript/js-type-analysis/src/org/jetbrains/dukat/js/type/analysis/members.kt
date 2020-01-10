@@ -1,25 +1,22 @@
 package org.jetbrains.dukat.js.type.analysis
 
-import org.jetbrains.dukat.astCommon.IdentifierEntity
+import org.jetbrains.dukat.js.identifiers.JavaScriptIdentifiers
 import org.jetbrains.dukat.js.type.constraint.immutable.resolved.NoTypeConstraint
 import org.jetbrains.dukat.js.type.constraint.properties.ClassConstraint
 import org.jetbrains.dukat.js.type.propertyOwner.PropertyOwner
+import org.jetbrains.dukat.js.type.type.VOID_TYPE
 import org.jetbrains.dukat.panic.raiseConcern
 import org.jetbrains.dukat.tsmodel.ConstructorDeclaration
 import org.jetbrains.dukat.tsmodel.FunctionDeclaration
 import org.jetbrains.dukat.tsmodel.MemberDeclaration
 import org.jetbrains.dukat.tsmodel.ModifierDeclaration
 import org.jetbrains.dukat.tsmodel.PropertyDeclaration
-import org.jetbrains.dukat.tsmodel.types.TypeDeclaration
 
 fun ConstructorDeclaration.addTo(owner: ClassConstraint) {
     owner.constructorConstraint = FunctionDeclaration(
             name = "",
             parameters = parameters,
-            type = TypeDeclaration(
-                    value = IdentifierEntity("Unit"),
-                    params = emptyList()
-            ),
+            type = VOID_TYPE,
             typeParameters = typeParameters,
             modifiers = modifiers,
             body = body,
@@ -45,7 +42,7 @@ fun MemberDeclaration.addToClass(owner: ClassConstraint, path: PathWalker) {
         is FunctionDeclaration -> if (this.modifiers.contains(ModifierDeclaration.STATIC_KEYWORD)) {
             this.addTo(owner)
         } else {
-            val ownerPrototype = owner["prototype"]
+            val ownerPrototype = owner[JavaScriptIdentifiers.PROTOTYPE]
 
             if (ownerPrototype is PropertyOwner) {
                 this.addTo(ownerPrototype)

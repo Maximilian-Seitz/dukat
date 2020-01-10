@@ -1,5 +1,6 @@
 package org.jetbrains.dukat.js.type.constraint.properties
 
+import org.jetbrains.dukat.js.identifiers.JavaScriptIdentifiers
 import org.jetbrains.dukat.js.type.constraint.Constraint
 import org.jetbrains.dukat.js.type.constraint.immutable.resolved.NoTypeConstraint
 import org.jetbrains.dukat.js.type.constraint.immutable.resolved.RecursiveConstraint
@@ -46,8 +47,8 @@ class FunctionConstraint(
 
     private fun hasMembers() : Boolean {
         return if (classRepresentation.propertyNames.isNotEmpty()) {
-            if (classRepresentation.propertyNames == setOf("prototype")) {
-                val resolvedPrototype = classRepresentation["prototype"]!!.resolve()
+            if (classRepresentation.propertyNames == setOf(JavaScriptIdentifiers.PROTOTYPE)) {
+                val resolvedPrototype = classRepresentation[JavaScriptIdentifiers.PROTOTYPE]!!.resolve()
 
                 if (resolvedPrototype is ObjectConstraint) {
                     resolvedPrototype.propertyNames.isNotEmpty()
@@ -63,7 +64,7 @@ class FunctionConstraint(
     }
 
     private fun hasNonStaticMembers() : Boolean {
-        val prototype = classRepresentation["prototype"]
+        val prototype = classRepresentation[JavaScriptIdentifiers.PROTOTYPE]
 
         return if (prototype != null) {
             val resolvedPrototype = prototype.resolve()
@@ -98,7 +99,7 @@ class FunctionConstraint(
             } else {
                 val objectRepresentation = ObjectConstraint(owner)
 
-                val propertyNames = classRepresentation.propertyNames.filter { it != "prototype" }
+                val propertyNames = classRepresentation.propertyNames.filter { it != JavaScriptIdentifiers.PROTOTYPE }
 
                 propertyNames.forEach {
                     objectRepresentation[it] = classRepresentation[it]!!

@@ -1,5 +1,6 @@
 package org.jetbrains.dukat.js.type.exportResolution
 
+import org.jetbrains.dukat.js.identifiers.CommonJSIdentifiers
 import org.jetbrains.dukat.js.type.constraint.properties.ObjectConstraint
 import org.jetbrains.dukat.js.type.constraint.resolution.asDefaultToDeclarations
 import org.jetbrains.dukat.js.type.propertyOwner.Scope
@@ -15,18 +16,18 @@ class CommonJSContext : TypeAnalysisContext {
         val moduleObject = ObjectConstraint(env)
         val exportsObject = ObjectConstraint(env)
 
-        moduleObject["exports"] = exportsObject
-        env["module"] = moduleObject
-        env["exports"] = exportsObject
+        moduleObject[CommonJSIdentifiers.EXPORTS] = exportsObject
+        env[CommonJSIdentifiers.MODULE] = moduleObject
+        env[CommonJSIdentifiers.EXPORTS] = exportsObject
 
         return env
     }
 
     override fun getExportsFrom(environment: Scope, defaultExportName: String): List<TopLevelDeclaration> {
-        val moduleObject = environment["module"]
+        val moduleObject = environment[CommonJSIdentifiers.MODULE]
 
         if (moduleObject is ObjectConstraint) {
-            val exportsObject = moduleObject["exports"]
+            val exportsObject = moduleObject[CommonJSIdentifiers.EXPORTS]
 
             if (exportsObject != null) {
                 return if (exportsObject is ObjectConstraint && exportsObject.callSignatureConstraints.isEmpty()) {
