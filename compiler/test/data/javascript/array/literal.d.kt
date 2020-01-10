@@ -21,7 +21,7 @@ external object arr {
     var `2`: String
     var length: Number
     fun concat(): Any?
-    fun copyWithin(target: Number, start: Number, end: Number): Number
+    fun copyWithin(target: Number, start: Number, end: Number): Any?
     fun fill(value: Any?, start: Number, end: Number): Any?
     fun find(): Any?
     fun findIndex(): Number
@@ -35,7 +35,7 @@ external object arr {
     fun sort(): Any?
     fun splice(): Any?
     fun includes(element: Any?, start: Number): Boolean
-    fun indexOf(): Any?
+    fun indexOf(): Number
     fun join(): Any?
     fun keys(): Any?
     fun entries(): Any?
