@@ -1,6 +1,6 @@
+@file:Suppress("RemoveEmptyParenthesesFromLambdaCall")
 package org.jetbrains.dukat.js.type.inbuilt
 
-import org.jetbrains.dukat.js.type.constraint.properties.ClassConstraint
-import org.jetbrains.dukat.js.type.inbuilt.builder.emptyScope
+import org.jetbrains.dukat.js.type.inbuilt.builder.jsClass
 
-val regExpClass = ClassConstraint(emptyScope)
+val regExpClass by jsClass {  }

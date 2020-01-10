@@ -1,4 +1,4 @@
-package org.jetbrains.dukat.js.type.exportResolution
+package org.jetbrains.dukat.js.type.analysis.context
 
 import org.jetbrains.dukat.js.type.propertyOwner.Scope
 import org.jetbrains.dukat.tsmodel.TopLevelDeclaration

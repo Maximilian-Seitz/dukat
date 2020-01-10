@@ -1,4 +1,4 @@
-package org.jetbrains.dukat.js.type.exportResolution
+package org.jetbrains.dukat.js.type.analysis.context
 
 import org.jetbrains.dukat.js.type.constraint.properties.ObjectConstraint
 import org.jetbrains.dukat.js.type.constraint.resolution.asDefaultToDeclarations
