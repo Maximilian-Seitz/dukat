@@ -4,6 +4,7 @@ import org.jetbrains.dukat.js.type.constraint.resolution.toDeclarations
 import org.jetbrains.dukat.js.type.inbuilt.arrayClass
 import org.jetbrains.dukat.js.type.inbuilt.jsonObject
 import org.jetbrains.dukat.js.type.inbuilt.mathObject
+import org.jetbrains.dukat.js.type.inbuilt.objectClass
 import org.jetbrains.dukat.js.type.inbuilt.regExpClass
 import org.jetbrains.dukat.js.type.propertyOwner.Scope
 import org.jetbrains.dukat.tsmodel.TopLevelDeclaration
@@ -13,6 +14,7 @@ class BasicJSContext : TypeAnalysisContext {
         val env = Scope(null)
 
         // build-in classes
+        env["Object"] = objectClass
         env["Array"] = arrayClass
         env["RegExp"] = regExpClass
 

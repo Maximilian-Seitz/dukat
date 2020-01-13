@@ -71,7 +71,7 @@ internal open class PropertyOwnerConstraintBuilder(private val propertyOwnerCons
 internal class ClassBuilder(private val classConstraint: ClassConstraint) : PropertyOwnerConstraintBuilder(classConstraint) {
     private val prototype = classConstraint["prototype"] as ObjectConstraint
 
-    val thisType = classConstraint
+    val thisType = NoTypeConstraint //TODO implement "this" type, to return instance of parent class
 
     fun static(modify: PropertyOwnerConstraintBuilder.() -> Unit) {
         PropertyOwnerConstraintBuilder(classConstraint).modify()
