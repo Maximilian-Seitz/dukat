@@ -15,7 +15,7 @@ import org.w3c.performance.*
 import org.w3c.workers.*
 import org.w3c.xhr.*
 
-external open class Array {
+external open class Array(value1: Any?, value2: Any?, value3: Any?, value4: Any?, value5: Any?, value6: Any?, value7: Any?, value8: Any?, value9: Any?, value10: Any?, value11: Any?, value12: Any?, value13: Any?, value14: Any?, value15: Any?, value16: Any?, value17: Any?, value18: Any?, value19: Any?, value20: Any?) {
     open var length: Number
     open fun concat(): Any?
     open fun copyWithin(target: Number, start: Number, end: Number): Any?

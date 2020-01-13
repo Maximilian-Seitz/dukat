@@ -5,6 +5,7 @@ import org.jetbrains.dukat.js.type.constraint.immutable.resolved.BooleanTypeCons
 import org.jetbrains.dukat.js.type.constraint.immutable.resolved.NoTypeConstraint
 import org.jetbrains.dukat.js.type.constraint.immutable.resolved.NumberTypeConstraint
 import org.jetbrains.dukat.js.type.constraint.immutable.resolved.StringTypeConstraint
+import org.jetbrains.dukat.js.type.constraint.immutable.resolved.VoidTypeConstraint
 import org.jetbrains.dukat.js.type.constraint.properties.ClassConstraint
 import org.jetbrains.dukat.js.type.constraint.properties.FunctionConstraint
 import org.jetbrains.dukat.js.type.constraint.properties.ObjectConstraint
@@ -12,7 +13,9 @@ import org.jetbrains.dukat.js.type.constraint.properties.PropertyOwnerConstraint
 import org.jetbrains.dukat.js.type.propertyOwner.PropertyOwner
 import org.jetbrains.dukat.js.type.propertyOwner.Scope
 
-internal fun jsFunction(vararg params: Pair<String, Constraint>, returnType: () -> Constraint) : FunctionConstraint {
+private typealias Parameter = Pair<String, Constraint>
+
+internal fun jsFunction(vararg params: Parameter, returnType: () -> Constraint) : FunctionConstraint {
     return FunctionConstraint(emptyScope, listOf(FunctionConstraint.Overload(
             returnConstraints = returnType(),
             parameterConstraints = params.toList()
@@ -40,22 +43,23 @@ internal fun jsObject(owner: Scope = emptyScope, build: PropertyOwnerConstraintB
 }
 
 internal open class PropertyOwnerConstraintBuilder(private val propertyOwnerConstraint: PropertyOwnerConstraint) {
+    val void = VoidTypeConstraint
     val boolean = BooleanTypeConstraint
     val number = NumberTypeConstraint
     val string = StringTypeConstraint
     val any = NoTypeConstraint
 
-    fun vararg(argProvider: (Int) -> Pair<String, Constraint>) = Array(20) { argProvider(it + 1) }
+    fun vararg(argProvider: (Int) -> Parameter) = Array(20) { argProvider(it + 1) }
 
-    protected fun defineFunctionIn(owner: PropertyOwner, name: String, returnType: Constraint, params: List<Pair<String, Constraint>>) {
+    protected fun defineFunctionIn(owner: PropertyOwner, name: String, returnType: Constraint, params: List<Parameter>) {
         owner[name] = FunctionConstraint(propertyOwnerConstraint, listOf(FunctionConstraint.Overload(returnType, params)))
     }
 
-    protected open fun registerFunction(name: String, returnType: Constraint, params: List<Pair<String, Constraint>>) {
+    protected open fun registerFunction(name: String, returnType: Constraint, params: List<Parameter>) {
         defineFunctionIn(propertyOwnerConstraint, name, returnType, params)
     }
 
-    operator fun String.invoke(vararg params: Pair<String, Constraint>, returnType: () -> Constraint) {
+    operator fun String.invoke(vararg params: Parameter, returnType: () -> Constraint) {
         registerFunction(this, returnType(), listOf(*params))
     }
 
@@ -73,8 +77,12 @@ internal class ClassBuilder(private val classConstraint: ClassConstraint) : Prop
         PropertyOwnerConstraintBuilder(classConstraint).modify()
     }
 
-    override fun registerFunction(name: String, returnType: Constraint, params: List<Pair<String, Constraint>>) {
+    override fun registerFunction(name: String, returnType: Constraint, params: List<Parameter>) {
         defineFunctionIn(prototype, name, returnType, params)
+    }
+
+    fun constructor(vararg params: Parameter) {
+        classConstraint.constructorConstraint = FunctionConstraint(classConstraint, listOf(FunctionConstraint.Overload(void, listOf(*params))))
     }
 
     override infix fun String.isType(type: Constraint) {

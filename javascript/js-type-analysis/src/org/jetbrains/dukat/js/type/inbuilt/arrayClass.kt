@@ -4,6 +4,8 @@ package org.jetbrains.dukat.js.type.inbuilt
 import org.jetbrains.dukat.js.type.inbuilt.builder.jsClass
 
 internal val arrayClass by jsClass {
+    constructor(*vararg { "value$it" to any })
+
     "length" isType number
 
     static {
