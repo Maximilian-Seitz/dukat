@@ -9,72 +9,73 @@ import org.jetbrains.dukat.js.type.constraint.immutable.resolved.VoidTypeConstra
 import org.jetbrains.dukat.js.type.constraint.properties.ClassConstraint
 import org.jetbrains.dukat.js.type.constraint.properties.FunctionConstraint
 import org.jetbrains.dukat.js.type.constraint.properties.ObjectConstraint
-import org.jetbrains.dukat.js.type.constraint.properties.PropertyOwnerConstraint
 import org.jetbrains.dukat.js.type.propertyOwner.PropertyOwner
 import org.jetbrains.dukat.js.type.propertyOwner.Scope
 
 private typealias Parameter = Pair<String, Constraint>
 
-internal fun jsFunction(vararg params: Parameter, returnType: () -> Constraint) : FunctionConstraint {
+private val typeOwner by lazy { TypeOwner() }
+
+internal fun jsFunction(vararg params: Parameter, returnType: TypeOwner.() -> Constraint) : FunctionConstraint {
     return FunctionConstraint(emptyScope, listOf(FunctionConstraint.Overload(
-            returnConstraints = returnType(),
+            returnConstraints = typeOwner.returnType(),
             parameterConstraints = params.toList()
     )))
 }
 
-internal fun jsClass(owner: Scope = emptyScope, build: ClassBuilder.() -> Unit) : Lazy<ClassConstraint> {
-    return lazy {
-        val classConstraint = ClassConstraint(owner)
-
-        ClassBuilder(classConstraint).build()
-
-        classConstraint
-    }
+internal fun jsObject(owner: Scope = emptyScope, build: PropertyOwnerBuilder.() -> Unit) : ObjectConstraint {
+    val objectConstraint = ObjectConstraint(owner)
+    PropertyOwnerBuilder(objectConstraint).build()
+    return objectConstraint
 }
 
-internal fun jsObject(owner: Scope = emptyScope, build: PropertyOwnerConstraintBuilder.() -> Unit) : Lazy<ObjectConstraint> {
-    return lazy {
-        val objectConstraint = ObjectConstraint(owner)
-
-        PropertyOwnerConstraintBuilder(objectConstraint).build()
-
-        objectConstraint
-    }
+internal fun jsClass(owner: Scope = emptyScope, build: ClassBuilder.() -> Unit) : ClassConstraint {
+    val classConstraint = ClassConstraint(owner)
+    ClassBuilder(classConstraint).build()
+    return classConstraint
 }
 
-internal open class PropertyOwnerConstraintBuilder(private val propertyOwnerConstraint: PropertyOwnerConstraint) {
+internal fun jsEnvironment(build: PropertyOwnerBuilder.() -> Unit) : Scope {
+    val env = Scope()
+    PropertyOwnerBuilder(env).build()
+    return env
+}
+
+internal open class TypeOwner {
     val void = VoidTypeConstraint
     val boolean = BooleanTypeConstraint
     val number = NumberTypeConstraint
     val string = StringTypeConstraint
     val any = NoTypeConstraint
+}
 
+internal open class PropertyOwnerBuilder(private val propertyOwner: PropertyOwner) : TypeOwner() {
     fun vararg(argProvider: (Int) -> Parameter) = Array(20) { argProvider(it + 1) }
 
     protected fun defineFunctionIn(owner: PropertyOwner, name: String, returnType: Constraint, params: List<Parameter>) {
-        owner[name] = FunctionConstraint(propertyOwnerConstraint, listOf(FunctionConstraint.Overload(returnType, params)))
+        owner[name] = FunctionConstraint(propertyOwner, listOf(FunctionConstraint.Overload(returnType, params)))
     }
 
     protected open fun registerFunction(name: String, returnType: Constraint, params: List<Parameter>) {
-        defineFunctionIn(propertyOwnerConstraint, name, returnType, params)
+        defineFunctionIn(propertyOwner, name, returnType, params)
     }
 
     operator fun String.invoke(vararg params: Parameter, returnType: () -> Constraint) {
         registerFunction(this, returnType(), listOf(*params))
     }
 
-    open infix fun String.isType(type: Constraint) {
-        propertyOwnerConstraint[this] = type
+    open operator fun String.minus(type: Constraint) {
+        propertyOwner[this] = type
     }
 }
 
-internal class ClassBuilder(private val classConstraint: ClassConstraint) : PropertyOwnerConstraintBuilder(classConstraint) {
+internal class ClassBuilder(private val classConstraint: ClassConstraint) : PropertyOwnerBuilder(classConstraint) {
     private val prototype = classConstraint["prototype"] as ObjectConstraint
 
     val thisType = NoTypeConstraint //TODO implement "this" type, to return instance of parent class
 
-    fun static(modify: PropertyOwnerConstraintBuilder.() -> Unit) {
-        PropertyOwnerConstraintBuilder(classConstraint).modify()
+    fun static(modify: PropertyOwnerBuilder.() -> Unit) {
+        PropertyOwnerBuilder(classConstraint).modify()
     }
 
     override fun registerFunction(name: String, returnType: Constraint, params: List<Parameter>) {
@@ -85,7 +86,7 @@ internal class ClassBuilder(private val classConstraint: ClassConstraint) : Prop
         classConstraint.constructorConstraint = FunctionConstraint(classConstraint, listOf(FunctionConstraint.Overload(void, listOf(*params))))
     }
 
-    override infix fun String.isType(type: Constraint) {
+    override operator fun String.minus(type: Constraint) {
         prototype[this] = type
     }
 }
