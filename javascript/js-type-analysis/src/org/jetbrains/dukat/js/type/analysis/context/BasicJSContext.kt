@@ -8,6 +8,7 @@ import org.jetbrains.dukat.js.type.inbuilt.jsonObject
 import org.jetbrains.dukat.js.type.inbuilt.mathObject
 import org.jetbrains.dukat.js.type.inbuilt.objectClass
 import org.jetbrains.dukat.js.type.inbuilt.regExpClass
+import org.jetbrains.dukat.js.type.inbuilt.stringClass
 import org.jetbrains.dukat.js.type.propertyOwner.Scope
 import org.jetbrains.dukat.tsmodel.TopLevelDeclaration
 
@@ -16,6 +17,7 @@ class BasicJSContext : TypeAnalysisContext {
         return jsEnvironment {
             // build-in classes
             "Object" - objectClass
+            "String" - stringClass
             "Array" - arrayClass
             "RegExp" - regExpClass
 
