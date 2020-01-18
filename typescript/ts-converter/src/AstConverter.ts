@@ -24,7 +24,12 @@ import {AstExpressionConverter} from "./ast/AstExpressionConverter";
 import {ExportContext} from "./ExportContext";
 import {AstVisitor} from "./AstVisitor";
 import {tsInternals} from "./TsInternals";
-import {ForInitializer, ModifiersArray, VariableDeclarationList} from "../.tsdeclarations/tsserverlibrary";
+import {
+    ForInitializer,
+    ForOfStatement,
+    ModifiersArray,
+    VariableDeclarationList
+} from "../.tsdeclarations/tsserverlibrary";
 
 export class AstConverter {
     private log = createLogger("AstConverter");
@@ -823,9 +828,20 @@ export class AstConverter {
                 statement.incrementor ? this.astExpressionConverter.convertExpression(statement.incrementor) : null,
                 body
             )
+        } else if (ts.isForOfStatement(statement)) {
+            decl = this.astFactory.createForOfStatement(
+                !!statement.awaitModifier,
+                this.convertForInitializer(statement.initializer),
+                this.astExpressionConverter.convertExpression(statement.expression),
+                body
+            )
+        } else if (ts.isForInStatement(statement)) {
+            decl = this.astFactory.createForInStatement(
+                this.convertForInitializer(statement.initializer),
+                this.astExpressionConverter.convertExpression(statement.expression),
+                body
+            )
         }
-
-        //TODO convert other iteration statements
 
         return decl
     }

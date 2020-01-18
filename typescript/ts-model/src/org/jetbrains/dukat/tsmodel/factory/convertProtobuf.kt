@@ -15,6 +15,8 @@ import org.jetbrains.dukat.tsmodel.EnumTokenDeclaration
 import org.jetbrains.dukat.tsmodel.ExportAssignmentDeclaration
 import org.jetbrains.dukat.tsmodel.ExpressionDeclaration
 import org.jetbrains.dukat.tsmodel.ExpressionStatementDeclaration
+import org.jetbrains.dukat.tsmodel.ForInStatementDeclaration
+import org.jetbrains.dukat.tsmodel.ForOfStatementDeclaration
 import org.jetbrains.dukat.tsmodel.ForStatementDeclaration
 import org.jetbrains.dukat.tsmodel.FunctionDeclaration
 import org.jetbrains.dukat.tsmodel.HeritageClauseDeclaration
@@ -84,6 +86,8 @@ import org.jetbrains.dukat.tsmodelproto.EnumDeclarationProto
 import org.jetbrains.dukat.tsmodelproto.ExportAssignmentDeclarationProto
 import org.jetbrains.dukat.tsmodelproto.ExpressionDeclarationProto
 import org.jetbrains.dukat.tsmodelproto.ExpressionStatementDeclarationProto
+import org.jetbrains.dukat.tsmodelproto.ForInStatementDeclarationProto
+import org.jetbrains.dukat.tsmodelproto.ForOfStatementDeclarationProto
 import org.jetbrains.dukat.tsmodelproto.ForStatementDeclarationProto
 import org.jetbrains.dukat.tsmodelproto.FunctionDeclarationProto
 import org.jetbrains.dukat.tsmodelproto.HeritageClauseDeclarationProto
@@ -287,6 +291,23 @@ fun ForStatementDeclarationProto.convert(): ForStatementDeclaration {
     )
 }
 
+fun ForOfStatementDeclarationProto.convert(): ForOfStatementDeclaration {
+    return ForOfStatementDeclaration(
+            hasAwaitModifier = hasAwaitModifier,
+            initializer = initializer.convert(),
+            expression = expression.convert(),
+            statement = statementList.convert() ?: BlockDeclaration(emptyList())
+    )
+}
+
+fun ForInStatementDeclarationProto.convert(): ForInStatementDeclaration {
+    return ForInStatementDeclaration(
+            initializer = initializer.convert(),
+            expression = expression.convert(),
+            statement = statementList.convert() ?: BlockDeclaration(emptyList())
+    )
+}
+
 fun ExpressionStatementDeclarationProto.convert(): ExpressionStatementDeclaration {
     return ExpressionStatementDeclaration(expression.convert())
 }
@@ -321,6 +342,8 @@ fun TopLevelDeclarationProto.convert(): TopLevelDeclaration {
         hasIfStatement() -> ifStatement.convert()
         hasWhileStatement() -> whileStatement.convert()
         hasForStatement() -> forStatement.convert()
+        hasForOfStatement() -> forOfStatement.convert()
+        hasForInStatement() -> forInStatement.convert()
         hasExpressionStatement() -> expressionStatement.convert()
         hasReturnStatement() -> returnStatement.convert()
         hasThrowStatement() -> throwStatement.convert()

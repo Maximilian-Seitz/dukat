@@ -294,6 +294,19 @@ message ForStatementDeclarationProto {
     repeated TopLevelDeclarationProto statement = 4;
 }
 
+message ForOfStatementDeclarationProto {
+    bool hasAwaitModifier = 1;
+    TopLevelDeclarationProto initializer = 2;
+    ExpressionDeclarationProto expression = 3;
+    repeated TopLevelDeclarationProto statement = 4;
+}
+
+message ForInStatementDeclarationProto {
+    TopLevelDeclarationProto initializer = 1;
+    ExpressionDeclarationProto expression = 2;
+    repeated TopLevelDeclarationProto statement = 3;
+}
+
 message ReturnStatementDeclarationProto {
     ExpressionDeclarationProto expression = 1;
 }
@@ -379,6 +392,8 @@ message TopLevelDeclarationProto {
         IfStatementDeclarationProto ifStatement = 14;
         WhileStatementDeclarationProto whileStatement = 15;
         ForStatementDeclarationProto forStatement = 16;
+        ForOfStatementDeclarationProto forOfStatement = 17;
+        ForInStatementDeclarationProto forInStatement = 18;
     }
 }
 

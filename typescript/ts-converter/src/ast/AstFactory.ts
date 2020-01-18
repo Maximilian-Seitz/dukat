@@ -151,6 +151,29 @@ export class AstFactory implements AstFactory {
     return topLevelDeclaration;
   }
 
+  createForOfStatement(hasAwaitModifier: boolean, initializer: Declaration, expression: Expression, statement: Array<Declaration>): Declaration {
+    let forOfStatement = new declarations.ForOfStatementDeclarationProto();
+    forOfStatement.setHasawaitmodifier(hasAwaitModifier);
+    forOfStatement.setInitializer(initializer);
+    forOfStatement.setExpression(expression);
+    forOfStatement.setStatementList(statement);
+
+    let topLevelDeclaration = new declarations.TopLevelDeclarationProto();
+    topLevelDeclaration.setForofstatement(forOfStatement);
+    return topLevelDeclaration;
+  }
+
+  createForInStatement(initializer: Declaration, expression: Expression, statement: Array<Declaration>): Declaration {
+    let forInStatement = new declarations.ForInStatementDeclarationProto();
+    forInStatement.setInitializer(initializer);
+    forInStatement.setExpression(expression);
+    forInStatement.setStatementList(statement);
+
+    let topLevelDeclaration = new declarations.TopLevelDeclarationProto();
+    topLevelDeclaration.setForinstatement(forInStatement);
+    return topLevelDeclaration;
+  }
+
   createReturnStatement(expression: Expression | null): Declaration {
     let returnStatement = new declarations.ReturnStatementDeclarationProto();
     if (expression) {
