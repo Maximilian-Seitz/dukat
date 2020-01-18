@@ -24,6 +24,7 @@ import {AstExpressionConverter} from "./ast/AstExpressionConverter";
 import {ExportContext} from "./ExportContext";
 import {AstVisitor} from "./AstVisitor";
 import {tsInternals} from "./TsInternals";
+import {ForInitializer, ModifiersArray, VariableDeclarationList} from "../.tsdeclarations/tsserverlibrary";
 
 export class AstConverter {
     private log = createLogger("AstConverter");
@@ -776,6 +777,35 @@ export class AstConverter {
         );
     }
 
+    convertVariableDeclarationList(variableDeclarationList: ts.VariableDeclarationList, modifiers?: ts.ModifiersArray): Array<Declaration> {
+        let res: Array<Declaration> = [];
+
+        for (let declaration of variableDeclarationList.declarations) {
+            res.push(this.astFactory.declareVariable(
+                declaration.name.getText(),
+                this.convertType(declaration.type),
+                modifiers ? this.convertModifiers(modifiers) : [],
+                declaration.initializer == null ? null : this.astExpressionConverter.convertExpression(declaration.initializer),
+                this.exportContext.getUID(declaration)
+            ));
+        }
+
+        return res;
+    }
+
+    convertForInitializer(initializer: ts.ForInitializer): Declaration {
+        // ForInitializer is ether VariableDeclarationList or Expression
+        if (ts.isVariableDeclarationList(initializer)) {
+            return this.astFactory.createBlockStatementDeclaration(
+                this.convertVariableDeclarationList(initializer)
+            )
+        } else {
+            return this.astFactory.createExpressionStatement(
+                this.astExpressionConverter.convertExpression(initializer)
+            )
+        }
+    }
+
     convertIterationStatement(statement: ts.Node): Declaration | null {
         let decl: Declaration | null = null;
 
@@ -786,9 +816,16 @@ export class AstConverter {
                 this.astExpressionConverter.convertExpression(statement.expression),
                 body
             )
+        } else if (ts.isForStatement(statement)) {
+            decl = this.astFactory.createForStatement(
+                statement.initializer ? this.convertForInitializer(statement.initializer) : null,
+                statement.condition ? this.astExpressionConverter.convertExpression(statement.condition) : null,
+                statement.incrementor ? this.astExpressionConverter.convertExpression(statement.incrementor) : null,
+                body
+            )
         }
 
-        //TODO convert other iteration statements than while statement
+        //TODO convert other iteration statements
 
         return decl
     }
@@ -809,15 +846,8 @@ export class AstConverter {
               this.exportContext.getUID(statement)
             ));
         } else if (ts.isVariableStatement(statement)) {
-            for (let declaration of statement.declarationList.declarations) {
-                res.push(this.astFactory.declareVariable(
-                  declaration.name.getText(),
-                  this.convertType(declaration.type),
-                  this.convertModifiers(statement.modifiers),
-                  declaration.initializer == null ? null : this.astExpressionConverter.convertExpression(declaration.initializer),
-                  this.exportContext.getUID(declaration)
-                ));
-            }
+            let variableDeclarations = this.convertVariableDeclarationList(statement.declarationList, statement.modifiers);
+            variableDeclarations.forEach((declaration) => res.push(declaration));
         } else if (ts.isExpressionStatement(statement)) {
             res.push(this.astFactory.createExpressionStatement(
                 this.astExpressionConverter.convertExpression(statement.expression)

@@ -139,6 +139,18 @@ export class AstFactory implements AstFactory {
     return topLevelDeclaration;
   }
 
+  createForStatement(initializer: Declaration | null, condition: Expression | null, incrementor: Expression | null, statement: Array<Declaration>): Declaration {
+    let forStatement = new declarations.ForStatementDeclarationProto();
+    if (initializer)  forStatement.setInitializer(initializer);
+    if (condition)    forStatement.setCondition(condition);
+    if (incrementor)  forStatement.setIncrementor(incrementor);
+    forStatement.setStatementList(statement);
+
+    let topLevelDeclaration = new declarations.TopLevelDeclarationProto();
+    topLevelDeclaration.setForstatement(forStatement);
+    return topLevelDeclaration;
+  }
+
   createReturnStatement(expression: Expression | null): Declaration {
     let returnStatement = new declarations.ReturnStatementDeclarationProto();
     if (expression) {

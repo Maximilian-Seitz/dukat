@@ -15,6 +15,7 @@ import org.jetbrains.dukat.tsmodel.EnumTokenDeclaration
 import org.jetbrains.dukat.tsmodel.ExportAssignmentDeclaration
 import org.jetbrains.dukat.tsmodel.ExpressionDeclaration
 import org.jetbrains.dukat.tsmodel.ExpressionStatementDeclaration
+import org.jetbrains.dukat.tsmodel.ForStatementDeclaration
 import org.jetbrains.dukat.tsmodel.FunctionDeclaration
 import org.jetbrains.dukat.tsmodel.HeritageClauseDeclaration
 import org.jetbrains.dukat.tsmodel.IfStatementDeclaration
@@ -83,6 +84,7 @@ import org.jetbrains.dukat.tsmodelproto.EnumDeclarationProto
 import org.jetbrains.dukat.tsmodelproto.ExportAssignmentDeclarationProto
 import org.jetbrains.dukat.tsmodelproto.ExpressionDeclarationProto
 import org.jetbrains.dukat.tsmodelproto.ExpressionStatementDeclarationProto
+import org.jetbrains.dukat.tsmodelproto.ForStatementDeclarationProto
 import org.jetbrains.dukat.tsmodelproto.FunctionDeclarationProto
 import org.jetbrains.dukat.tsmodelproto.HeritageClauseDeclarationProto
 import org.jetbrains.dukat.tsmodelproto.IdentifierDeclarationProto
@@ -276,6 +278,15 @@ fun WhileStatementDeclarationProto.convert(): WhileStatementDeclaration {
     )
 }
 
+fun ForStatementDeclarationProto.convert(): ForStatementDeclaration {
+    return ForStatementDeclaration(
+            initializer = if (hasInitializer()) initializer.convert() else null,
+            condition = if (hasCondition()) condition.convert() else null,
+            incrementor = if (hasIncrementor()) incrementor.convert() else null,
+            statement = statementList.convert() ?: BlockDeclaration(emptyList())
+    )
+}
+
 fun ExpressionStatementDeclarationProto.convert(): ExpressionStatementDeclaration {
     return ExpressionStatementDeclaration(expression.convert())
 }
@@ -309,6 +320,7 @@ fun TopLevelDeclarationProto.convert(): TopLevelDeclaration {
         hasImportEquals() -> importEquals.convert()
         hasIfStatement() -> ifStatement.convert()
         hasWhileStatement() -> whileStatement.convert()
+        hasForStatement() -> forStatement.convert()
         hasExpressionStatement() -> expressionStatement.convert()
         hasReturnStatement() -> returnStatement.convert()
         hasThrowStatement() -> throwStatement.convert()
