@@ -1,6 +1,8 @@
 package org.jetbrains.dukat.js.type.analysis
 
 import org.jetbrains.dukat.astCommon.IdentifierEntity
+import org.jetbrains.dukat.js.type.analysis.flowControl.ReturnInstruction
+import org.jetbrains.dukat.js.type.analysis.flowControl.ThrowInstruction
 import org.jetbrains.dukat.js.type.constraint.Constraint
 import org.jetbrains.dukat.js.type.constraint.reference.ReferenceConstraint
 import org.jetbrains.dukat.js.type.constraint.composite.CompositeConstraint
@@ -11,6 +13,7 @@ import org.jetbrains.dukat.js.type.constraint.immutable.resolved.BooleanTypeCons
 import org.jetbrains.dukat.js.type.constraint.immutable.resolved.NoTypeConstraint
 import org.jetbrains.dukat.js.type.constraint.immutable.resolved.NumberTypeConstraint
 import org.jetbrains.dukat.js.type.constraint.immutable.resolved.StringTypeConstraint
+import org.jetbrains.dukat.js.type.constraint.immutable.resolved.ThrowConstraint
 import org.jetbrains.dukat.js.type.constraint.immutable.resolved.VoidTypeConstraint
 import org.jetbrains.dukat.js.type.constraint.properties.ClassConstraint
 import org.jetbrains.dukat.js.type.constraint.properties.FunctionConstraint
@@ -55,7 +58,13 @@ fun FunctionDeclaration.addTo(owner: PropertyOwner) : FunctionConstraint? {
                 parameters[i].name to parameterConstraint
             }
 
-            val returnTypeConstraints = it.calculateConstraints(functionScope, pathWalker) ?: VoidTypeConstraint
+            val functionResult = it.calculateConstraints(functionScope, pathWalker)
+
+            val returnTypeConstraints = when (functionResult) {
+                is ReturnInstruction -> functionResult.returnConstraint
+                is ThrowInstruction -> ThrowConstraint
+                else -> null
+            } ?: VoidTypeConstraint
 
             versions.add(FunctionConstraint.Overload(
                     returnConstraints = returnTypeConstraints,
