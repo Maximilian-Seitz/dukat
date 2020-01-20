@@ -17,6 +17,7 @@ import {
   ReferenceEntity,
   SourceFileDeclaration,
   SourceSet,
+  SwitchCaseDeclaration,
   Declaration,
   TypeParameter,
   TypeParamReferenceDeclaration,
@@ -139,39 +140,56 @@ export class AstFactory implements AstFactory {
     return topLevelDeclaration;
   }
 
-  createForStatement(initializer: Declaration | null, condition: Expression | null, incrementor: Expression | null, statement: Array<Declaration>): Declaration {
+  createForStatement(initializer: Declaration | null, condition: Expression | null, incrementor: Expression | null, statements: Array<Declaration>): Declaration {
     let forStatement = new declarations.ForStatementDeclarationProto();
     if (initializer)  forStatement.setInitializer(initializer);
     if (condition)    forStatement.setCondition(condition);
     if (incrementor)  forStatement.setIncrementor(incrementor);
-    forStatement.setStatementList(statement);
+    forStatement.setStatementList(statements);
 
     let topLevelDeclaration = new declarations.TopLevelDeclarationProto();
     topLevelDeclaration.setForstatement(forStatement);
     return topLevelDeclaration;
   }
 
-  createForOfStatement(hasAwaitModifier: boolean, initializer: Declaration, expression: Expression, statement: Array<Declaration>): Declaration {
+  createForOfStatement(hasAwaitModifier: boolean, initializer: Declaration, expression: Expression, statements: Array<Declaration>): Declaration {
     let forOfStatement = new declarations.ForOfStatementDeclarationProto();
     forOfStatement.setHasawaitmodifier(hasAwaitModifier);
     forOfStatement.setInitializer(initializer);
     forOfStatement.setExpression(expression);
-    forOfStatement.setStatementList(statement);
+    forOfStatement.setStatementList(statements);
 
     let topLevelDeclaration = new declarations.TopLevelDeclarationProto();
     topLevelDeclaration.setForofstatement(forOfStatement);
     return topLevelDeclaration;
   }
 
-  createForInStatement(initializer: Declaration, expression: Expression, statement: Array<Declaration>): Declaration {
+  createForInStatement(initializer: Declaration, expression: Expression, statements: Array<Declaration>): Declaration {
     let forInStatement = new declarations.ForInStatementDeclarationProto();
     forInStatement.setInitializer(initializer);
     forInStatement.setExpression(expression);
-    forInStatement.setStatementList(statement);
+    forInStatement.setStatementList(statements);
 
     let topLevelDeclaration = new declarations.TopLevelDeclarationProto();
     topLevelDeclaration.setForinstatement(forInStatement);
     return topLevelDeclaration;
+  }
+
+  createSwitchStatement(expression: Expression, switchCases: Array<SwitchCaseDeclaration>): Declaration {
+    let switchStatement = new declarations.SwitchStatementDeclarationProto();
+    switchStatement.setExpression(expression);
+    switchStatement.setSwitchcaseList(switchCases);
+
+    let topLevelDeclaration = new declarations.TopLevelDeclarationProto();
+    topLevelDeclaration.setSwitchstatement(switchStatement);
+    return topLevelDeclaration;
+  }
+
+  createSwitchCaseDeclaration(expression: Expression | null, statements: Array<Declaration>): SwitchCaseDeclaration {
+    let switchCaseDeclaration = new declarations.SwitchCaseDeclarationProto();
+    if (expression) switchCaseDeclaration.setExpression(expression);
+    switchCaseDeclaration.setStatementList(statements);
+    return switchCaseDeclaration;
   }
 
   createReturnStatement(expression: Expression | null): Declaration {

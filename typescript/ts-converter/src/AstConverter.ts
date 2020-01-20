@@ -15,6 +15,7 @@ import {
     ParameterDeclaration,
     ReferenceEntity,
     SourceFileDeclaration,
+    SwitchCaseDeclaration,
     TypeDeclaration,
     TypeParameter
 } from "./ast/ast";
@@ -24,12 +25,6 @@ import {AstExpressionConverter} from "./ast/AstExpressionConverter";
 import {ExportContext} from "./ExportContext";
 import {AstVisitor} from "./AstVisitor";
 import {tsInternals} from "./TsInternals";
-import {
-    ForInitializer,
-    ForOfStatement,
-    ModifiersArray,
-    VariableDeclarationList
-} from "../.tsdeclarations/tsserverlibrary";
 
 export class AstConverter {
     private log = createLogger("AstConverter");
@@ -846,6 +841,23 @@ export class AstConverter {
         return decl
     }
 
+    convertCaseBlock(caseBlock: ts.CaseBlock): Array<SwitchCaseDeclaration> {
+        return caseBlock.clauses.map((clause: ts.CaseClause | ts.DefaultClause) => {
+            let expression: Expression | null = null;
+
+            if (ts.isCaseClause(clause)) {
+                expression = this.astExpressionConverter.convertExpression(clause.expression);
+            }
+
+            return this.astFactory.createSwitchCaseDeclaration(
+                expression,
+                clause.statements.flatMap((statement) => {
+                    return this.convertTopLevelStatement(statement)
+                })
+            );
+        });
+    }
+
     convertTopLevelStatement(statement: ts.Node): Array<Declaration> {
         let res: Array<Declaration> = [];
 
@@ -880,6 +892,11 @@ export class AstConverter {
             if (iterationStatement) {
                 res.push(iterationStatement)
             }
+        } else if (ts.isSwitchStatement(statement)) {
+            res.push(this.astFactory.createSwitchStatement(
+                this.astExpressionConverter.convertExpression(statement.expression),
+                this.convertCaseBlock(statement.caseBlock)
+            ));
         } else if (ts.isReturnStatement(statement)) {
             res.push(this.astFactory.createReturnStatement(
                 statement.expression ? this.astExpressionConverter.convertExpression(statement.expression) : null

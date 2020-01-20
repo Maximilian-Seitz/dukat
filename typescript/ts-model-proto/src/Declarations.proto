@@ -307,6 +307,16 @@ message ForInStatementDeclarationProto {
     repeated TopLevelDeclarationProto statement = 3;
 }
 
+message SwitchStatementDeclarationProto {
+    ExpressionDeclarationProto expression = 1;
+    repeated SwitchCaseDeclarationProto switchCase = 2;
+}
+
+message SwitchCaseDeclarationProto {
+    ExpressionDeclarationProto expression = 1;
+    repeated TopLevelDeclarationProto statement = 2;
+}
+
 message ReturnStatementDeclarationProto {
     ExpressionDeclarationProto expression = 1;
 }
@@ -394,6 +404,7 @@ message TopLevelDeclarationProto {
         ForStatementDeclarationProto forStatement = 16;
         ForOfStatementDeclarationProto forOfStatement = 17;
         ForInStatementDeclarationProto forInStatement = 18;
+        SwitchStatementDeclarationProto switchStatement = 19;
     }
 }
 

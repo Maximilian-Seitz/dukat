@@ -33,6 +33,8 @@ import org.jetbrains.dukat.tsmodel.ReturnStatementDeclaration
 import org.jetbrains.dukat.tsmodel.SourceBundleDeclaration
 import org.jetbrains.dukat.tsmodel.SourceFileDeclaration
 import org.jetbrains.dukat.tsmodel.SourceSetDeclaration
+import org.jetbrains.dukat.tsmodel.SwitchCaseDeclaration
+import org.jetbrains.dukat.tsmodel.SwitchStatementDeclaration
 import org.jetbrains.dukat.tsmodel.ThisTypeDeclaration
 import org.jetbrains.dukat.tsmodel.ThrowStatementDeclaration
 import org.jetbrains.dukat.tsmodel.TopLevelDeclaration
@@ -118,6 +120,8 @@ import org.jetbrains.dukat.tsmodelproto.SourceFileDeclarationProto
 import org.jetbrains.dukat.tsmodelproto.SourceBundleDeclarationProto
 import org.jetbrains.dukat.tsmodelproto.SourceSetDeclarationProto
 import org.jetbrains.dukat.tsmodelproto.StringLiteralExpressionDeclarationProto
+import org.jetbrains.dukat.tsmodelproto.SwitchCaseDeclarationProto
+import org.jetbrains.dukat.tsmodelproto.SwitchStatementDeclarationProto
 import org.jetbrains.dukat.tsmodelproto.ThrowStatementDeclarationProto
 import org.jetbrains.dukat.tsmodelproto.TopLevelDeclarationProto
 import org.jetbrains.dukat.tsmodelproto.TypeAliasDeclarationProto
@@ -308,6 +312,20 @@ fun ForInStatementDeclarationProto.convert(): ForInStatementDeclaration {
     )
 }
 
+fun SwitchStatementDeclarationProto.convert(): SwitchStatementDeclaration {
+    return SwitchStatementDeclaration(
+            expression = expression.convert(),
+            cases = switchCaseList.map { it.convert() }
+    )
+}
+
+private fun SwitchCaseDeclarationProto.convert(): SwitchCaseDeclaration {
+    return SwitchCaseDeclaration(
+            expression = if (hasExpression()) expression.convert() else null,
+            statement = statementList.convert() ?: BlockDeclaration(emptyList())
+    )
+}
+
 fun ExpressionStatementDeclarationProto.convert(): ExpressionStatementDeclaration {
     return ExpressionStatementDeclaration(expression.convert())
 }
@@ -344,6 +362,7 @@ fun TopLevelDeclarationProto.convert(): TopLevelDeclaration {
         hasForStatement() -> forStatement.convert()
         hasForOfStatement() -> forOfStatement.convert()
         hasForInStatement() -> forInStatement.convert()
+        hasSwitchStatement() -> switchStatement.convert()
         hasExpressionStatement() -> expressionStatement.convert()
         hasReturnStatement() -> returnStatement.convert()
         hasThrowStatement() -> throwStatement.convert()
