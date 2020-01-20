@@ -816,6 +816,11 @@ export class AstConverter {
                 this.astExpressionConverter.convertExpression(statement.expression),
                 body
             )
+        } else if (ts.isDoStatement(statement)) {
+            decl = this.astFactory.createDoStatement(
+                this.astExpressionConverter.convertExpression(statement.expression),
+                body
+            )
         } else if (ts.isForStatement(statement)) {
             decl = this.astFactory.createForStatement(
                 statement.initializer ? this.convertForInitializer(statement.initializer) : null,

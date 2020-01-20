@@ -10,6 +10,7 @@ import org.jetbrains.dukat.tsmodel.CallSignatureDeclaration
 import org.jetbrains.dukat.tsmodel.ClassDeclaration
 import org.jetbrains.dukat.tsmodel.ConstructorDeclaration
 import org.jetbrains.dukat.tsmodel.DefinitionInfoDeclaration
+import org.jetbrains.dukat.tsmodel.DoStatementDeclaration
 import org.jetbrains.dukat.tsmodel.EnumDeclaration
 import org.jetbrains.dukat.tsmodel.EnumTokenDeclaration
 import org.jetbrains.dukat.tsmodel.ExportAssignmentDeclaration
@@ -83,6 +84,7 @@ import org.jetbrains.dukat.tsmodelproto.ClassDeclarationProto
 import org.jetbrains.dukat.tsmodelproto.ConditionalExpressionDeclarationProto
 import org.jetbrains.dukat.tsmodelproto.ConstructorDeclarationProto
 import org.jetbrains.dukat.tsmodelproto.DefinitionInfoDeclarationProto
+import org.jetbrains.dukat.tsmodelproto.DoStatementDeclarationProto
 import org.jetbrains.dukat.tsmodelproto.ElementAccessExpressionDeclarationProto
 import org.jetbrains.dukat.tsmodelproto.EnumDeclarationProto
 import org.jetbrains.dukat.tsmodelproto.ExportAssignmentDeclarationProto
@@ -286,6 +288,13 @@ fun WhileStatementDeclarationProto.convert(): WhileStatementDeclaration {
     )
 }
 
+fun DoStatementDeclarationProto.convert(): DoStatementDeclaration {
+    return DoStatementDeclaration(
+            condition = condition.convert(),
+            statement = statementList.convert() ?: BlockDeclaration(emptyList())
+    )
+}
+
 fun ForStatementDeclarationProto.convert(): ForStatementDeclaration {
     return ForStatementDeclaration(
             initializer = if (hasInitializer()) initializer.convert() else null,
@@ -359,6 +368,7 @@ fun TopLevelDeclarationProto.convert(): TopLevelDeclaration {
         hasImportEquals() -> importEquals.convert()
         hasIfStatement() -> ifStatement.convert()
         hasWhileStatement() -> whileStatement.convert()
+        hasDoStatement() -> doStatement.convert()
         hasForStatement() -> forStatement.convert()
         hasForOfStatement() -> forOfStatement.convert()
         hasForInStatement() -> forInStatement.convert()
