@@ -322,6 +322,14 @@ message SwitchCaseDeclarationProto {
     repeated TopLevelDeclarationProto statement = 2;
 }
 
+message BreakStatementDeclarationProto {
+    IdentifierDeclarationProto label = 1;
+}
+
+message ContinueStatementDeclarationProto {
+    IdentifierDeclarationProto label = 1;
+}
+
 message ReturnStatementDeclarationProto {
     ExpressionDeclarationProto expression = 1;
 }
@@ -411,6 +419,8 @@ message TopLevelDeclarationProto {
         ForOfStatementDeclarationProto forOfStatement = 18;
         ForInStatementDeclarationProto forInStatement = 19;
         SwitchStatementDeclarationProto switchStatement = 20;
+        BreakStatementDeclarationProto breakStatement = 21;
+        ContinueStatementDeclarationProto continueStatement = 22;
     }
 }
 

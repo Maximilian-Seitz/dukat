@@ -902,6 +902,14 @@ export class AstConverter {
                 this.astExpressionConverter.convertExpression(statement.expression),
                 this.convertCaseBlock(statement.caseBlock)
             ));
+        } else if (ts.isBreakStatement(statement)) {
+            res.push(this.astFactory.createBreakStatement(
+                statement.label ? this.astFactory.createIdentifierDeclaration(statement.label.getText()) : null
+            ))
+        } else if (ts.isContinueStatement(statement)) {
+            res.push(this.astFactory.createContinueStatement(
+                statement.label ? this.astFactory.createIdentifierDeclaration(statement.label.getText()) : null
+            ))
         } else if (ts.isReturnStatement(statement)) {
             res.push(this.astFactory.createReturnStatement(
                 statement.expression ? this.astExpressionConverter.convertExpression(statement.expression) : null

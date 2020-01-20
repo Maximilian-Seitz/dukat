@@ -202,6 +202,24 @@ export class AstFactory implements AstFactory {
     return switchCaseDeclaration;
   }
 
+  createBreakStatement(label: IdentifierDeclaration | null): Declaration {
+    let breakStatement = new declarations.BreakStatementDeclarationProto();
+    if (label) breakStatement.setLabel(label);
+
+    let topLevelDeclaration = new declarations.TopLevelDeclarationProto();
+    topLevelDeclaration.setBreakstatement(breakStatement);
+    return topLevelDeclaration;
+  }
+
+  createContinueStatement(label: IdentifierDeclaration | null): Declaration {
+    let continueStatement = new declarations.ContinueStatementDeclarationProto();
+    if (label) continueStatement.setLabel(label);
+
+    let topLevelDeclaration = new declarations.TopLevelDeclarationProto();
+    topLevelDeclaration.setContinuestatement(continueStatement);
+    return topLevelDeclaration;
+  }
+
   createReturnStatement(expression: Expression | null): Declaration {
     let returnStatement = new declarations.ReturnStatementDeclarationProto();
     if (expression) {
