@@ -328,7 +328,7 @@ fun SwitchStatementDeclarationProto.convert(): SwitchStatementDeclaration {
     )
 }
 
-private fun SwitchCaseDeclarationProto.convert(): SwitchCaseDeclaration {
+fun SwitchCaseDeclarationProto.convert(): SwitchCaseDeclaration {
     return SwitchCaseDeclaration(
             expression = if (hasExpression()) expression.convert() else null,
             statement = statementList.convert() ?: BlockDeclaration(emptyList())
