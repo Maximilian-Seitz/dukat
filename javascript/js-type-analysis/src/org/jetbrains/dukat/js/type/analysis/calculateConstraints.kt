@@ -5,14 +5,19 @@ import org.jetbrains.dukat.js.type.analysis.flowControl.ContinueInstruction
 import org.jetbrains.dukat.js.type.analysis.flowControl.FlowInstruction
 import org.jetbrains.dukat.js.type.analysis.flowControl.ReturnInstruction
 import org.jetbrains.dukat.js.type.analysis.flowControl.ThrowInstruction
+import org.jetbrains.dukat.js.type.constraint.composite.CompositeConstraint
 import org.jetbrains.dukat.js.type.constraint.immutable.resolved.NoTypeConstraint
+import org.jetbrains.dukat.js.type.constraint.immutable.resolved.StringTypeConstraint
 import org.jetbrains.dukat.js.type.propertyOwner.PropertyOwner
 import org.jetbrains.dukat.panic.raiseConcern
 import org.jetbrains.dukat.tsmodel.BlockDeclaration
 import org.jetbrains.dukat.tsmodel.BreakStatementDeclaration
 import org.jetbrains.dukat.tsmodel.ClassDeclaration
 import org.jetbrains.dukat.tsmodel.ContinueStatementDeclaration
+import org.jetbrains.dukat.tsmodel.ExpressionDeclaration
 import org.jetbrains.dukat.tsmodel.ExpressionStatementDeclaration
+import org.jetbrains.dukat.tsmodel.ForInStatementDeclaration
+import org.jetbrains.dukat.tsmodel.ForIteratorStatementDeclaration
 import org.jetbrains.dukat.tsmodel.ForStatementDeclaration
 import org.jetbrains.dukat.tsmodel.FunctionDeclaration
 import org.jetbrains.dukat.tsmodel.IfStatementDeclaration
@@ -81,21 +86,52 @@ fun ForStatementDeclaration.calculateConstraints(owner: PropertyOwner, path: Pat
     }
 }
 
-//TODO support for-in and for-of statements
+fun ForIteratorStatementDeclaration.calculateConstraints(owner: PropertyOwner, path: PathWalker) : FlowInstruction? {
+    return when (path.getNextDirection()) {
+        PathWalker.Direction.Left -> {
+            initializer.calculateConstraints(owner, path) //The initializer can't contain flow control
+
+            val loopVariableConstraint = when (this) {
+                is ForInStatementDeclaration -> StringTypeConstraint
+                else /* ForOfStatementDeclaration */ -> CompositeConstraint(owner)
+            }
+
+            when (val initializer = initializer) {
+                is ExpressionDeclaration -> owner[initializer, path] = loopVariableConstraint
+                is BlockDeclaration -> {
+                    val variableInitializer = initializer.statements.firstOrNull()
+
+                    if (variableInitializer is VariableDeclaration) {
+                        owner[variableInitializer.name] = loopVariableConstraint
+                    } else {
+                        raiseConcern("Can't process for loop iterator variable.") {  }
+                    }
+                }
+                else -> raiseConcern("Can't process for loop iterator variable.") {  }
+            }
+
+            expression.calculateConstraints(owner, path)
+
+            statement.calculateConstraints(owner, path)
+        }
+        PathWalker.Direction.Right -> null
+    }
+}
 
 fun SwitchStatementDeclaration.calculateConstraints(owner: PropertyOwner, path: PathWalker) : FlowInstruction? {
     expression.calculateConstraints(owner, path)
 
     var wasCaseSelected = false
     cases.forEach { case ->
-        wasCaseSelected = if (case.expression == null || wasCaseSelected) {
-            //case.expression == null   => default case
-            //wasCaseSelected           => a previous case has already been chosen
-            true
-        } else {
-            case.expression?.calculateConstraints(owner, path)
+        if (!wasCaseSelected) {
+            wasCaseSelected = if (case.expression == null) {
+                //default case
+                true
+            } else {
+                case.expression?.calculateConstraints(owner, path)
 
-            path.getNextDirection() == PathWalker.Direction.Left
+                path.getNextDirection() == PathWalker.Direction.Left
+            }
         }
 
         if (wasCaseSelected) {
@@ -131,6 +167,7 @@ fun TopLevelDeclaration.calculateConstraints(owner: PropertyOwner, path: PathWal
         is IfStatementDeclaration -> return this.calculateConstraints(owner, path)
         is WhileStatementDeclaration -> return this.calculateConstraints(owner, path)
         is ForStatementDeclaration -> return this.calculateConstraints(owner, path)
+        is ForIteratorStatementDeclaration -> return this.calculateConstraints(owner, path)
         is SwitchStatementDeclaration -> return this.calculateConstraints(owner, path)
         is ExpressionStatementDeclaration -> this.calculateConstraints(owner, path)
         is BlockDeclaration -> return this.calculateConstraints(owner, path)

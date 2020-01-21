@@ -1,7 +1,7 @@
 package org.jetbrains.dukat.tsmodel
 
 data class ForInStatementDeclaration(
-        val initializer: TopLevelDeclaration,
-        val expression: ExpressionDeclaration,
-        val statement: TopLevelDeclaration
-) : TopLevelDeclaration
+        override val initializer: TopLevelDeclaration,
+        override val expression: ExpressionDeclaration,
+        override val statement: TopLevelDeclaration
+) : ForIteratorStatementDeclaration
